@@ -1,0 +1,31 @@
+{
+  "corpus_version": "1.0-sourced",
+  "note": "Guidance documents extracted verbatim by training/fetch_policy_corpus.py. Entries with authoritative=false are placeholder text and are declared as such in every /recommend response that draws on them.",
+  "documents": [
+    {
+      "id": "who-mental-health-at-work-2022",
+      "title": "WHO Guidelines on Mental Health at Work (2022)",
+      "publisher": "World Health Organization",
+      "source_url": "https://iris.who.int/server/api/core/bitstreams/6152a556-6893-4c4e-9ed8-094478bb25eb/content",
+      "landing_url": "https://www.who.int/publications/i/item/9789240053052",
+      "retrieved_on": "2026-09-07",
+      "licence": "CC BY-NC-SA 3.0 IGO",
+      "authoritative": true,
+      "file": "who_mental_health_at_work.md",
+      "scope_caveat": "Organisational guidance on workload, psychosocial risk, manager training and return to work. Not CAPF-specific; it is generic workplace guidance from a body whose recommendations are evidence-graded.",
+      "extraction": "pages with >= 4 guidance terms, front matter and reference pages excluded, top 45 by density"
+    }
+  ],
+  "rejected_sources": [
+    {
+      "id": "mha-annual-report-2023-24",
+      "pdf_url": "https://www.mha.gov.in/sites/default/files/AREnglish_24032026.pdf",
+      "reason": "413 pages, no personnel-welfare guidance. Welfare vocabulary refers to civilians, prisoners and statistics, not to CAPF personnel."
+    },
+    {
+      "id": "mha-annual-report-2021-22",
+      "pdf_url": "https://www.mha.gov.in/sites/default/files/AnnualReport202122_24112022%5B1%5D.pdf",
+      "reason": "305 pages, same finding as the 2023-24 report."
+    }
+  ]
+}
