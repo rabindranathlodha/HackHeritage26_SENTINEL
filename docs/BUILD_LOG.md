@@ -1495,3 +1495,82 @@ not produce a working system. It now carries the full sequence, the key-generati
 (the app tier refuses to start without a valid `AES_KEY` rather than storing questionnaires
 in plaintext), and a Known Limits section stating the miss rate, the on-device blocker and
 the corpus scope caveat up front rather than leaving them to be discovered.
+
+---
+
+## Distilling Model B — a negative result
+
+The on-device blocker had been narrowed to one number: the fp16 export is 196 MB against a
+150 MB budget. Vocabulary pruning had already taken the vocabulary out of the problem — the
+pruned embedding table is 12,304,128 of the model's 97,950,722 parameters, so what remains
+is the 12-layer encoder. Halving it is the only lever left.
+
+```
+teacher (12 layers)   97,950,722 params   196 MB fp16
+student  (6 layers)   55,423,490 params   111 MB fp16   (57% of the teacher)
+```
+
+Size was never in doubt. `training/distil_model_b.py` initialises the student from the
+teacher's layers `[1, 3, 5, 7, 9, 11]` — every other layer, ending on the last, because the
+classifier head was trained against that layer's output — and trains it against the
+teacher's logits (KL at T=2.0, alpha 0.5) as well as the labels. Teacher logits are
+precomputed once; the teacher is frozen, so running it every step would only cost time.
+
+**First attempt: every layer trainable, lr 5e-5.**
+
+```
+                     student   teacher   95% CI of difference   override disagreements
+english               0.7165    0.7940   [-0.1107, -0.0477]     132/715  (18.46%)
+hindi (back-transl.)  0.4232    0.7367   [-0.3783, -0.2475]      60/300  (20.00%)
+```
+
+Hindi at 0.4232 is close to chance on a binary task, and the asymmetry is the diagnosis:
+Dreaddit is English-only, so the model's Hindi behaviour comes entirely from the pretrained
+multilingual encoder. The teacher kept it by freezing its embeddings and bottom six layers.
+Leaving every student layer trainable and fine-tuning on 2,051 English rows asks the model
+to become an English classifier, and it obliged.
+
+**Second attempt: bottom 3 of 6 layers frozen, lr back to 3e-5, and cross-lingual
+distillation.** The frozen layers are exactly the ones the teacher never updated — student
+positions 0–2 come from teacher layers 1, 3, 5, all inside the teacher's frozen block. The
+cross-lingual part exploits a property of distillation: the target is the teacher's logits,
+not a label, so the training text needs no annotation and therefore need not be English.
+Translating the training split and distilling on both copies asks the student to match the
+teacher in Hindi directly. The **training** split only — the Hindi evaluation set is built
+from the held-out test split and translating it into training would have made the resulting
+number meaningless.
+
+```
+                     student   teacher   95% CI of difference   override disagreements
+english               0.6627    0.7940   [-0.1687, -0.0940]     192/715  (26.85%)
+hindi (back-transl.)  0.6419    0.7367   [-0.1588, -0.0289]      70/300  (23.33%)
+```
+
+It did what it was designed to do — Hindi recovered from 0.4232 to 0.6419, and the gap
+between the two languages nearly closed (0.6627 vs 0.6419) — and it still fails. English
+fell further, and override disagreement got worse on both sets.
+
+**Verdict: rejected, and by its own gate.** `on_device_verdict()` blocks a student on two
+conditions: any override-decision disagreement with the server model, and a paired
+confidence interval lying entirely below zero. The 6-layer student trips all four checks,
+and the script exits non-zero after writing the artifact, the same way the ONNX export gate
+does.
+
+Both failures point at the same thing, and it is not the recipe. Task-specific distillation
+from a fine-tuned classifier needs enough data to transfer the function; there are 2,051
+labelled rows. This is the same constraint that has bounded Model B throughout — the
+corpora that would fix it (CLPsych, DAIC-WOZ) are behind data-use agreements. A third
+recipe tuned against the same 300 Hindi texts would eventually produce a better number and
+a worse model, so the search stops here.
+
+**Where this leaves on-device.** Unchanged, but for a better-understood reason. The choice
+is a product one: accept 196 MB fp16 as a one-time cached PWA asset — zero decision
+disagreements over 715 texts, functionally exact — or fund encoder distillation over a
+large unlabelled Indic corpus, which is weeks of work and a different project. An 8-layer
+student would fit at ~139 MB, but on this evidence it would fail the same gate less badly
+rather than pass it. Until one is taken, the privacy claim stays *"text is discarded
+immediately after scoring"*.
+
+The gate is covered by `tests/test_distillation_gate.py`, including a test carrying the
+measured numbers, so the negative result is executable rather than a paragraph someone has
+to find.

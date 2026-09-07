@@ -403,10 +403,18 @@ pipeline can write scores without being able to read any.
 - **About half of elevated-risk people are missed** (miss rate 0.49); 64.4% of the
   highest-risk band is surfaced. Detection is tunable — see `docs/DEPLOYMENT_ECONOMICS.html`
   for the workload/detection curve.
-- **On-device Model B is not shippable.** fp16 is functionally exact but 196 MB against a
-  150 MB budget; int8 fits at 136 MB but flips 6.6% of override decisions. Until one is
-  accepted, the privacy claim is "text is discarded immediately after scoring", not "text
-  never leaves the device".
+- **On-device Model B is not shippable, and distillation did not rescue it.** fp16 is
+  functionally exact but 196 MB against a 150 MB budget; int8 fits at 136 MB but flips
+  6.6% of override decisions. Vocabulary pruning already removed the vocabulary from the
+  problem — the pruned embedding table is 12.3M of 98M parameters, so the remaining
+  overshoot is encoder depth. A 6-layer student (55.4M parameters, 111 MB fp16) was trained
+  and **rejected by its own gate**: it disagreed with the server model on 27% of override
+  decisions and was measurably worse in both languages. With 2,051 labelled training rows
+  there is not enough signal to transfer the teacher's function to a shallower model. The
+  remaining choice is a product one — accept 196 MB as a one-time cached asset, or invest
+  in encoder distillation over a large unlabelled corpus. Until one is taken, the privacy
+  claim is "text is discarded immediately after scoring", not "text never leaves the
+  device". See `training/distil_model_b.py` and `docs/BUILD_LOG.md`.
 - **The policy corpus is generic workplace guidance**, not CAPF policy. MHA Annual Reports
   were evaluated and rejected as reporting rather than guidance documents.
 - **Synthetic calibration is unverified** — plausible working ranges marked `[ASSUMPTION]`,
