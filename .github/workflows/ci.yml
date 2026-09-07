@@ -1,0 +1,156 @@
+name: CI
+
+# Spec Section 12: lint (ruff + eslint) and run all tests on push.
+#
+# The test job builds a real system rather than mocking one — Postgres with the
+# RLS migrations applied, a generated dataset, a trained Model A — because the
+# checks that matter here are row-level security, k-anonymity and the
+# no-auto-contact guarantee, and none of those can be verified against a mock.
+#
+# Model B (multi-GB deep-learning stack) and the RAG index are NOT built in CI.
+# Their tests skip on a missing artifact instead of failing, which is why every
+# model module checks for its artifact before importing its framework.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: ruff
+        working-directory: ml
+        run: ruff check app training data_gen tests
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install app-tier dependencies
+        working-directory: api
+        run: npm ci --no-audit --no-fund
+
+      - name: eslint
+        working-directory: api
+        run: npx eslint .
+
+      - name: TypeScript
+        working-directory: api
+        run: npx tsc --noEmit
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sentinel
+          POSTGRES_PASSWORD: sentinel
+          POSTGRES_DB: sentinel
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U sentinel -d sentinel"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://sentinel:sentinel@localhost:5432/sentinel
+      SENTINEL_APP_DATABASE_URL: postgresql://sentinel_app:ci-only-not-a-real-secret@localhost:5432/sentinel
+      REDIS_URL: redis://localhost:6379
+      AES_KEY: Y2ktb25seS10ZXN0LWtleS0zMi1ieXRlcy1sb25nISE=
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install app-tier dependencies
+        working-directory: api
+        run: npm ci --no-audit --no-fund
+
+      - name: Apply migrations, including the RLS policies
+        working-directory: api
+        run: npx prisma migrate deploy
+
+      - name: Grant login to the least-privilege request role
+        run: |
+          PGPASSWORD=sentinel psql -h localhost -U sentinel -d sentinel -v ON_ERROR_STOP=1 \
+            -c "ALTER ROLE sentinel_app WITH LOGIN PASSWORD 'ci-only-not-a-real-secret';"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install ML dependencies
+        working-directory: ml
+        # Core plus models and dev only. The nlp/rag/onnx groups are multi-GB and
+        # their tests skip cleanly without them.
+        run: pip install -e ".[models,dev]"
+
+      - name: Generate the synthetic dataset
+        working-directory: ml
+        run: python -m data_gen.generate_synthetic --n 3000 --days 180
+
+      - name: Train Model A
+        working-directory: ml
+        run: python -m training.train_model_a
+
+      - name: Train Model C
+        working-directory: ml
+        # scikit-learn only — no deep-learning framework, so it is cheap enough
+        # to build here rather than skip.
+        run: python -m training.train_model_c
+
+      - name: Score a population so cohort aggregates have data
+        working-directory: ml
+        run: python -m data_gen.score_population --limit 600 --reset
+
+      - name: Bias audit and PR curve
+        working-directory: ml
+        run: python -m training.evaluate --folds 3
+
+      - name: Tests
+        working-directory: ml
+        run: python -m pytest -v
+
+      - name: Upload evaluation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation
+          path: |
+            ml/artifacts/pr_curve.png
+            ml/artifacts/evaluation_report.json
+            ml/artifacts/model_a_meta.json
+          if-no-files-found: warn
