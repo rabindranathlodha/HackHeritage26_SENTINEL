@@ -138,7 +138,9 @@ jobs:
 
       - name: Bias audit and PR curve
         working-directory: ml
-        run: python -m training.evaluate --folds 3
+        # 5 folds so the uploaded report matches the figures quoted in the
+        # README and BUILD_LOG. Costs about 20 seconds over 3.
+        run: python -m training.evaluate --folds 5
 
       - name: Tests
         working-directory: ml
