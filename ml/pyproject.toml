@@ -1,0 +1,81 @@
+[project]
+name = "sentinel-ml"
+version = "0.1.0"
+description = "SENTINEL ML/NLP inference service — welfare-risk indicators for human review."
+requires-python = ">=3.12,<3.13"
+
+# Core serving: what the FastAPI process needs to start, answer /health, run the
+# fusion layer and reach the database. Deliberately excludes every model
+# framework — each model loads its own imports lazily, after checking that its
+# artifact exists, so the service starts and degrades honestly (503, never a
+# fabricated score) when a heavier group is not installed.
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2",
+    "pydantic-settings",
+    "psycopg[binary]",
+    "redis",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "joblib",
+]
+
+[project.optional-dependencies]
+# Models A and C, the synthetic pipeline, and the evaluation suite. Light enough
+# for CI: no deep-learning framework.
+models = [
+    "xgboost",
+    "shap",
+    "scikit-learn",
+    "matplotlib",
+    "faker",
+]
+
+# Model B. Multi-GB; installed in the image but not in CI, where the Model B
+# tests skip on a missing artifact rather than failing.
+nlp = [
+    "torch",
+    "transformers",
+    "sentencepiece",
+    "protobuf",
+    "accelerate",
+]
+
+# Step 3.11 retrieval: local embeddings, local vector store, PDF extraction.
+rag = [
+    "sentence-transformers",
+    "chromadb",
+    "pypdf",
+]
+
+# On-device export path for Model B.
+onnx = [
+    "onnxruntime",
+    "onnxscript",
+    "onnxconverter-common",
+]
+
+dev = [
+    "pytest",
+    "httpx",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

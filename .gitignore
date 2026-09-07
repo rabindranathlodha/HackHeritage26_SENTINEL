@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Downloaded corpora: the source PDFs and the text extracted from them are
+# regenerable by training/fetch_policy_corpus.py and would bloat the repo.
+# The manifest and README are NOT — they are the provenance record that makes
+# every citation auditable, and the log of which sources were evaluated and
+# rejected. Those stay tracked.
+ml/data/*
+!ml/data/policy_corpus/
+ml/data/policy_corpus/*
+!ml/data/policy_corpus/README.md
+!ml/data/policy_corpus/manifest.json
+
+# ML artifacts (generated, never committed)
+ml/artifacts/*
+!ml/artifacts/.gitkeep
+
+# Node
+node_modules/
+.next/
+out/
+
+# Env / secrets — never commit real keys
+.env
+.env.local
+.env.*.local
+
+# OS
+Thumbs.db
+.DS_Store

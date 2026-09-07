@@ -1,0 +1,101 @@
+# SENTINEL — one-command local spin-up (spec 3.1 / 15).
+# Four services: Postgres 16, Redis, the Python ML service, the Next.js app tier.
+
+services:
+  db:
+    image: postgres:16
+    container_name: sentinel-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentinel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sentinel}
+      POSTGRES_DB: ${POSTGRES_DB:-sentinel}
+    ports:
+      # Host port is configurable: on Windows, 5432 falls inside a Hyper-V
+      # reserved range (5342-5441) and cannot be bound. In-cluster services
+      # always reach Postgres as db:5432 regardless of this mapping.
+      - "${POSTGRES_HOST_PORT:-55432}:5432"
+    volumes:
+      - sentinel_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sentinel} -d ${POSTGRES_DB:-sentinel}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: sentinel-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ml:
+    build:
+      context: ./ml
+    container_name: sentinel-ml
+    environment:
+      # Owner connection: migrations, the synthetic seeder, and offline
+      # training/eval only. NEVER the request path — it bypasses RLS.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sentinel}:${POSTGRES_PASSWORD:-sentinel}@db:5432/${POSTGRES_DB:-sentinel}
+      # Request-path connection: no privileges until it SET ROLEs. Fails closed.
+      SENTINEL_APP_DATABASE_URL: postgresql://sentinel_app:${SENTINEL_APP_PASSWORD}@db:5432/${POSTGRES_DB:-sentinel}
+      REDIS_URL: redis://redis:6379
+      K_ANONYMITY_THRESHOLD: ${K_ANONYMITY_THRESHOLD:-10}
+    ports:
+      - "8000:8000"
+    volumes:
+      # Live-reload source during the build; artifacts persist across rebuilds.
+      - ./ml/app:/app/app
+      - ./ml/tests:/app/tests
+      - ./ml/training:/app/training
+      - ./ml/data_gen:/app/data_gen
+      - ./ml/artifacts:/app/artifacts
+      # Policy corpus for the RAG engine, and any downloaded training
+      # corpora. Mounted so the manifest is editable without a rebuild.
+      - ./ml/data:/app/data
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  api:
+    build:
+      context: ./api
+    container_name: sentinel-api
+    environment:
+      # Runtime queries go through the least-privilege login, which must
+      # SET ROLE before it can read anything. Migrations pass the owner URL on
+      # the command line instead (scripts/bootstrap_db.sh).
+      SENTINEL_APP_DATABASE_URL: postgresql://sentinel_app:${SENTINEL_APP_PASSWORD}@db:5432/${POSTGRES_DB:-sentinel}
+      REDIS_URL: redis://redis:6379
+      ML_SERVICE_URL: http://ml:8000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-only-not-a-real-secret}
+      # Field-level AES-256 for Assessment.responsesEnc (spec 9.3). No default:
+      # the app must refuse to store a questionnaire rather than fall back to
+      # plaintext if this is missing.
+      AES_KEY: ${AES_KEY:?AES_KEY must be set - see .env.example}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api/src:/app/src
+      - ./api/prisma:/app/prisma
+    depends_on:
+      db:
+        condition: service_healthy
+      ml:
+        condition: service_started
+
+volumes:
+  sentinel_pgdata:
