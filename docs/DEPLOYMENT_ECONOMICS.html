@@ -1,0 +1,721 @@
+<title>SENTINEL Deployment Economics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --paper:      #EEF0EE;
+    --surface:    #F7F8F7;
+    --sunk:       #E4E8E5;
+    --ink:        #141A19;
+    --ink-soft:   #4E5A57;
+    --ink-faint:  #77837F;
+    --rule:       #C9CFCC;
+    --rule-soft:  #DBE0DD;
+    --accent:     #0F5F52;
+    --accent-dim: #DCEAE5;
+
+    --band-low:      #5E7C74;
+    --band-moderate: #B08432;
+    --band-elevated: #C25E2A;
+    --band-priority: #9E3324;
+
+    --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #0E1413;
+      --surface:    #161D1B;
+      --sunk:       #1B2321;
+      --ink:        #E4E8E6;
+      --ink-soft:   #A3AFAB;
+      --ink-faint:  #7C8783;
+      --rule:       #2A3532;
+      --rule-soft:  #212B29;
+      --accent:     #4FBFA6;
+      --accent-dim: #17302B;
+
+      --band-low:      #7FA096;
+      --band-moderate: #D4A64D;
+      --band-elevated: #E1834C;
+      --band-priority: #D0604D;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #0E1413;
+    --surface:    #161D1B;
+    --sunk:       #1B2321;
+    --ink:        #E4E8E6;
+    --ink-soft:   #A3AFAB;
+    --ink-faint:  #7C8783;
+    --rule:       #2A3532;
+    --rule-soft:  #212B29;
+    --accent:     #4FBFA6;
+    --accent-dim: #17302B;
+
+    --band-low:      #7FA096;
+    --band-moderate: #D4A64D;
+    --band-elevated: #E1834C;
+    --band-priority: #D0604D;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    border-top: 3px solid var(--ink);
+    padding-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .stamp {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.06;
+    letter-spacing: -0.022em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 19px;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 52px; }
+  .q {
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 10px;
+    margin-bottom: 22px;
+  }
+  .q-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    flex: none;
+    padding-top: 4px;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(20px, 3vw, 25px);
+    letter-spacing: -0.014em;
+    line-height: 1.2;
+    margin: 0;
+    text-wrap: balance;
+  }
+  p { max-width: 66ch; margin: 0 0 16px; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 600; }
+  em { font-style: italic; color: var(--ink-soft); }
+
+  .lede { font-size: 18px; }
+
+  /* ---------- data table ---------- */
+  .scroll { overflow-x: auto; margin: 22px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+    min-width: 520px;
+  }
+  caption {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding-bottom: 10px;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule);
+    padding: 8px 14px 8px 0;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 9px 14px 9px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    color: var(--ink);
+  }
+  td.num, th.num { text-align: right; padding-right: 0; }
+  tr.emph td { background: var(--accent-dim); font-weight: 500; }
+  tr.emph td:first-child { box-shadow: inset 3px 0 0 var(--accent); padding-left: 10px; }
+
+  .note {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--ink-faint);
+    max-width: 74ch;
+  }
+
+  /* ---------- chart ---------- */
+  figure { margin: 26px 0 0; }
+  .chart-wrap { overflow-x: auto; }
+  svg { display: block; max-width: 100%; height: auto; }
+  figcaption {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-top: 12px;
+    max-width: 74ch;
+    line-height: 1.55;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 14px;
+  }
+  .legend span { display: flex; align-items: center; gap: 8px; }
+  .swatch { width: 16px; height: 3px; border-radius: 2px; flex: none; }
+
+  /* ---------- posture list ---------- */
+  .posture {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    margin: 22px 0;
+  }
+  .posture > div {
+    background: var(--surface);
+    padding: 18px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .posture dt {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .posture dd {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 17px;
+    line-height: 1.3;
+  }
+  .posture p {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- phases ---------- */
+  .phases { display: flex; flex-direction: column; gap: 0; margin: 22px 0; }
+  .phase {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 20px;
+    padding: 18px 0;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .phase:last-child { border-bottom: 1px solid var(--rule-soft); }
+  .phase-tag {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding-top: 3px;
+  }
+  .phase h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 17px;
+    margin: 0 0 5px;
+    letter-spacing: -0.008em;
+  }
+  .phase p { margin: 0; font-size: 15.5px; color: var(--ink-soft); }
+
+  /* ---------- boundary ---------- */
+  .boundary {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--band-priority);
+    background: var(--surface);
+    padding: 22px 24px;
+    margin: 24px 0 0;
+  }
+  .boundary h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 16px;
+    margin: 0 0 10px;
+    letter-spacing: 0.01em;
+  }
+  .boundary ul { margin: 0; padding-left: 20px; }
+  .boundary li { margin-bottom: 9px; font-size: 15.5px; color: var(--ink-soft); }
+  .boundary li:last-child { margin-bottom: 0; }
+  .boundary li strong { color: var(--ink); }
+
+  .disclaimer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ink-faint);
+    max-width: 74ch;
+  }
+
+  @media (max-width: 620px) {
+    .sheet { padding: 40px 20px 72px; }
+    body { font-size: 16px; }
+    .phase { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <div class="stamp">
+      <span>SIH26186</span>
+      <span>MHA / CRPF</span>
+      <span>Deployment brief</span>
+      <span>Backend &amp; ML</span>
+    </div>
+    <h1>What it costs to run SENTINEL</h1>
+    <p class="standfirst">
+      Every figure below was measured on the working system against 3,000 synthetic
+      personnel — not estimated. Where a number rests on an assumption, the assumption
+      is named.
+    </p>
+  </header>
+
+  <section>
+    <div class="q"><span class="q-num">Q1</span><h2>Who pays, and for what?</h2></div>
+    <p class="lede">
+      This is not a subscription product. Personnel welfare data cannot leave government
+      infrastructure, so SENTINEL is built to be <strong>deployed and owned by the force,
+      not rented from a vendor</strong>. That decision shapes the whole cost structure.
+    </p>
+    <p>
+      The realistic funding route is the existing <strong>Modernisation of Police Forces</strong>
+      umbrella or the CAPF welfare allocation, procured through GeM, with an annual
+      maintenance contract covering retraining, corpus updates and support. Capital cost is
+      a one-time server; the recurring cost is almost entirely people.
+    </p>
+
+    <dl class="posture">
+      <div>
+        <dt>Runtime dependencies</dt>
+        <dd>None external</dd>
+        <p>Every model runs locally — gradient-boosted trees, the multilingual encoder,
+        the embedding model and the vector store. The system can run air-gapped.</p>
+      </div>
+      <div>
+        <dt>Data egress</dt>
+        <dd>Zero by design</dd>
+        <p>No welfare record leaves the deployment. The optional policy-recommendation
+        path defaults to quoting retrieved text rather than calling a hosted model.</p>
+      </div>
+      <div>
+        <dt>Vendor lock-in</dt>
+        <dd>Open components</dd>
+        <p>PostgreSQL, XGBoost, an AI4Bharat encoder, ONNX. No proprietary runtime to
+        renew, and the trained artifacts are files the force holds.</p>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <div class="q"><span class="q-num">Q2</span><h2>Will it scale to a force of this size?</h2></div>
+    <p>
+      Comfortably, and the reason is that the expensive model only runs when someone
+      actually writes something. Behavioural scoring — the part that runs for everybody,
+      every cycle — costs <strong>8.5 milliseconds per person</strong> end to end.
+    </p>
+
+    <div class="scroll">
+      <table>
+        <caption>Measured on one CPU thread pool, per person</caption>
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th class="num">Latency</th>
+            <th>Runs for</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Feature engineering from 180-day history</td>
+            <td class="num">0.6 ms</td>
+            <td>Everyone, every cycle</td>
+          </tr>
+          <tr>
+            <td>Model A — behavioural risk, with SHAP</td>
+            <td class="num">7.9 ms</td>
+            <td>Everyone, every cycle</td>
+          </tr>
+          <tr>
+            <td>Fusion, banding, escalation decision</td>
+            <td class="num">0.008 ms</td>
+            <td>Everyone, every cycle</td>
+          </tr>
+          <tr>
+            <td>Model C — physiological deviation</td>
+            <td class="num">12.0 ms</td>
+            <td>Consenting personnel only</td>
+          </tr>
+          <tr>
+            <td>Model B — self-report text, CPU</td>
+            <td class="num">212.2 ms</td>
+            <td>Only when text is submitted</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      At <strong>8.5 ms per person</strong>, scoring 1,000 personnel takes 8.5 seconds on a
+      single thread. A force of 325,000 <em>(sanctioned strength — verify against current
+      establishment)</em> scores in about 46 minutes single-threaded, or roughly
+      <strong>six minutes on eight cores</strong>. That is a nightly batch job on one
+      mid-range server, not a cluster.
+    </p>
+    <p>
+      Storage is similarly undramatic. A daily HR-signal row is 304 bytes, so a year of
+      behavioural history costs <strong>111 KB per person</strong> — about 36 GB a year for
+      325,000 people, before compression. Score history at weekly cadence adds roughly
+      11 GB a year.
+    </p>
+    <p class="note">
+      Model B is the one costly component, and it is event-driven: it runs when a person
+      chooses to write something, not on a schedule. If one person in ten submits a
+      self-report each week, that is under two hours of single-threaded compute per week
+      across the entire force.
+    </p>
+  </section>
+
+  <section>
+    <div class="q"><span class="q-num">Q3</span><h2>How many alerts will my welfare officers actually get?</h2></div>
+    <p class="lede">
+      This is the question that decides whether the system gets used or ignored, so it is
+      the one we measured most carefully. Alert volume is <strong>a dial, not a
+      consequence</strong> — and the dial has a published curve.
+    </p>
+    <p>
+      A single parameter (τ) sets how confident the model must be before it places someone
+      in the top band and raises a pending review. Moving it trades officer workload
+      against how many genuinely high-risk people are surfaced. Both sides of that trade
+      were measured out-of-fold across 3,000 people.
+    </p>
+
+    <figure>
+      <div class="chart-wrap">
+        <svg viewBox="0 0 720 400" role="img" aria-label="Alert volume against detection rate as the confidence threshold tau varies from 0.20 to 0.80">
+          <!-- grid -->
+          <g stroke="var(--rule-soft)" stroke-width="1">
+            <line x1="70" y1="40" x2="660" y2="40"></line>
+            <line x1="70" y1="105" x2="660" y2="105"></line>
+            <line x1="70" y1="170" x2="660" y2="170"></line>
+            <line x1="70" y1="235" x2="660" y2="235"></line>
+          </g>
+          <line x1="70" y1="300" x2="660" y2="300" stroke="var(--rule)" stroke-width="1.5"></line>
+
+          <!-- left axis: alerts per 1,000 (0-45) -->
+          <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-faint)">
+            <text x="60" y="304" text-anchor="end">0</text>
+            <text x="60" y="239" text-anchor="end">11</text>
+            <text x="60" y="174" text-anchor="end">22</text>
+            <text x="60" y="109" text-anchor="end">34</text>
+            <text x="60" y="44" text-anchor="end">45</text>
+          </g>
+          <!-- right axis: detection (0-80%) -->
+          <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-faint)">
+            <text x="670" y="304">0%</text>
+            <text x="670" y="239">20%</text>
+            <text x="670" y="174">40%</text>
+            <text x="670" y="109">60%</text>
+            <text x="670" y="44">80%</text>
+          </g>
+
+          <!-- detection line -->
+          <polyline fill="none" stroke="var(--accent)" stroke-width="2.5"
+            stroke-linejoin="round" stroke-linecap="round"
+            points="70,68.9 168,90.7 267,101.4 365,137.5 463,170 660,188.2"></polyline>
+          <!-- alerts line -->
+          <polyline fill="none" stroke="var(--band-elevated)" stroke-width="2.5"
+            stroke-dasharray="6 4" stroke-linejoin="round" stroke-linecap="round"
+            points="70,63.1 168,111.1 267,142.3 365,180.4 463,211.6 660,226.6"></polyline>
+
+          <!-- in-force marker -->
+          <line x1="168" y1="40" x2="168" y2="300" stroke="var(--ink-soft)" stroke-width="1" stroke-dasharray="3 4"></line>
+          <rect x="122" y="18" width="92" height="18" fill="var(--accent)" rx="2"></rect>
+          <text x="168" y="31" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10.5" font-weight="600" fill="var(--paper)" letter-spacing="0.06em">IN FORCE</text>
+
+          <!-- points -->
+          <g fill="var(--accent)">
+            <circle cx="70" cy="68.9" r="4"></circle><circle cx="168" cy="90.7" r="5"></circle>
+            <circle cx="267" cy="101.4" r="4"></circle><circle cx="365" cy="137.5" r="4"></circle>
+            <circle cx="463" cy="170" r="4"></circle><circle cx="660" cy="188.2" r="4"></circle>
+          </g>
+          <g fill="var(--band-elevated)">
+            <circle cx="70" cy="63.1" r="4"></circle><circle cx="168" cy="111.1" r="5"></circle>
+            <circle cx="267" cy="142.3" r="4"></circle><circle cx="365" cy="180.4" r="4"></circle>
+            <circle cx="463" cy="211.6" r="4"></circle><circle cx="660" cy="226.6" r="4"></circle>
+          </g>
+
+          <!-- value labels at the operating point -->
+          <text x="180" y="84" font-family="IBM Plex Mono, monospace" font-size="12"
+            font-weight="600" fill="var(--accent)">64.4%</text>
+          <text x="180" y="128" font-family="IBM Plex Mono, monospace" font-size="12"
+            font-weight="600" fill="var(--band-elevated)">32.7</text>
+
+          <!-- x axis -->
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="var(--ink-soft)" text-anchor="middle">
+            <text x="70" y="322">0.20</text>
+            <text x="168" y="322">0.30</text>
+            <text x="267" y="322">0.40</text>
+            <text x="365" y="322">0.50</text>
+            <text x="463" y="322">0.60</text>
+            <text x="660" y="322">0.80</text>
+          </g>
+          <text x="365" y="348" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="11" fill="var(--ink-faint)" letter-spacing="0.09em">CONFIDENCE THRESHOLD τ</text>
+          <text x="365" y="378" text-anchor="middle" font-family="IBM Plex Mono, monospace"
+            font-size="10.5" fill="var(--ink-faint)">lower τ → more alerts, more of the top band found</text>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch" style="background: var(--accent)"></i> Top-band cases surfaced (right axis)</span>
+        <span><i class="swatch" style="background: var(--band-elevated)"></i> Alerts per 1,000 personnel (left axis)</span>
+      </div>
+      <figcaption>
+        Out-of-fold over 3,000 people, five-fold cross-validation. Each person scored by a
+        model that never saw them.
+      </figcaption>
+    </figure>
+
+    <div class="scroll">
+      <table>
+        <caption>Capacity planning — pick a row, get both numbers</caption>
+        <thead>
+          <tr>
+            <th>τ</th>
+            <th class="num">Alerts / 1,000</th>
+            <th class="num">Top band found</th>
+            <th class="num">Alerts on lower-risk people</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>0.20</td><td class="num">41.0</td><td class="num">71.1%</td><td class="num">59</td></tr>
+          <tr class="emph"><td>0.30 — in force</td><td class="num">32.7</td><td class="num">64.4%</td><td class="num">40</td></tr>
+          <tr><td>0.40</td><td class="num">27.3</td><td class="num">61.1%</td><td class="num">27</td></tr>
+          <tr><td>0.50</td><td class="num">20.7</td><td class="num">50.0%</td><td class="num">17</td></tr>
+          <tr><td>0.60</td><td class="num">15.3</td><td class="num">40.0%</td><td class="num">10</td></tr>
+          <tr><td>0.80</td><td class="num">12.7</td><td class="num">34.4%</td><td class="num">7</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      Read it as a staffing decision. Roughly <strong>tripling alert volume — 12.7 to 41.0
+      per thousand — roughly doubles</strong> how much of the highest-risk group reaches a
+      human. An officer responsible for 500 personnel sees about 16 pending reviews per
+      full scoring cycle at the setting now in force.
+    </p>
+    <p class="note">
+      The database enforces one open alert per person, so a repeatedly-flagged individual
+      does not generate a queue. Steady-state volume is therefore governed by how quickly
+      officers close reviews, not by scoring frequency.
+    </p>
+  </section>
+
+  <section>
+    <div class="q"><span class="q-num">Q4</span><h2>How does it get adopted?</h2></div>
+    <p>
+      Not force-wide on day one. The behavioural model needs 90 days of history before its
+      windows are meaningful, and welfare officers need to trust the queue before they will
+      work it.
+    </p>
+
+    <div class="phases">
+      <div class="phase">
+        <span class="phase-tag">Phase 1</span>
+        <div>
+          <h3>One battalion, shadow mode</h3>
+          <p>Scores computed and logged, no alerts raised. Establishes the 90-day history
+          and lets officers compare what the system surfaces against what they already
+          know. τ is calibrated here against real caseload capacity.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag">Phase 2</span>
+        <div>
+          <h3>Alerts live, behavioural signal only</h3>
+          <p>Pending reviews reach assigned welfare officers. Self-report and wearable
+          consent stay closed. This is the phase that tests whether the queue is workable
+          before any additional data is asked for.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag">Phase 3</span>
+        <div>
+          <h3>Self-report and consented biometrics</h3>
+          <p>The two optional signals open, each individually consented. The system already
+          functions fully without either — that is a design constraint, not a fallback — so
+          uptake can be slow without degrading service.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag">Phase 4</span>
+        <div>
+          <h3>Sector rollout, annual re-audit</h3>
+          <p>Extension by sector, with the bias audit re-run on live cohorts each year.
+          Recall drift and any cohort whose interval separates from the overall rate become
+          contract deliverables, not discretionary checks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="q"><span class="q-num">Q5</span><h2>What does year two cost?</h2></div>
+    <p>
+      Compute and storage are close to a rounding error at this scale. The recurring cost
+      is human, and it falls into three lines.
+    </p>
+    <div class="scroll">
+      <table>
+        <caption>Recurring cost drivers, in order of size</caption>
+        <thead>
+          <tr><th>Line</th><th>Driver</th><th>Cadence</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Welfare officer time</td>
+            <td>Set by τ — see the capacity curve above</td>
+            <td>Continuous</td>
+          </tr>
+          <tr>
+            <td>Model retraining and bias re-audit</td>
+            <td>Distribution drift as postings and rotations change</td>
+            <td>Annual</td>
+          </tr>
+          <tr>
+            <td>Policy corpus maintenance</td>
+            <td>New welfare circulars superseding old guidance</td>
+            <td>As issued</td>
+          </tr>
+          <tr>
+            <td>Infrastructure</td>
+            <td>One server class; ~50 GB/year growth</td>
+            <td>Refresh cycle</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">
+      Retraining is cheap in compute — the behavioural model trains in under two minutes on
+      3,000 people — and expensive in review: the bias audit and its confidence intervals
+      have to be read by someone before a new model is promoted.
+    </p>
+  </section>
+
+  <section>
+    <div class="q"><span class="q-num">Q6</span><h2>What will you not claim?</h2></div>
+    <p>
+      A business case for a welfare system invites a return-on-investment figure built on
+      incidents prevented. We will not offer one, and the reason matters more than the
+      omission.
+    </p>
+
+    <div class="boundary">
+      <h3>Claims deliberately withheld</h3>
+      <ul>
+        <li><strong>No incidents-prevented figure.</strong> You cannot count what did not
+        happen, and attributing an absence to this system would be unfalsifiable. Any ROI
+        built on that number is arithmetic on a guess.</li>
+        <li><strong>No clinical outcome claim.</strong> The system surfaces elevated
+        welfare-risk indicators for human review. It does not diagnose, detect a condition,
+        or predict an act — a boundary enforced in code on every response, not just in
+        copy.</li>
+        <li><strong>Detection is 64.4%, not "high accuracy".</strong> At the setting in
+        force, roughly a third of the highest-risk group is still missed by the behavioural
+        signal alone. Self-report override and sustained-trend escalation exist to catch
+        some of that; neither closes the gap entirely.</li>
+        <li><strong>Costs are measured on synthetic data.</strong> 3,000 generated
+        personnel with calibrated but unverified ranges. Latency and storage figures
+        transfer; alert volumes depend on real prevalence, which nobody here has measured.</li>
+      </ul>
+    </div>
+
+    <p style="margin-top: 22px;">
+      What the system does offer is a workload curve an operations owner can plan against,
+      an audit that reports its own uncertainty, and a deployment that keeps welfare data
+      inside the force. Those are defensible. A prevented-suicide count is not.
+    </p>
+  </section>
+
+  <p class="disclaimer">
+    SENTINEL surfaces elevated welfare-risk indicators for human review. Not a clinical
+    diagnosis. No code path in the system contacts a person or notifies a commander; the
+    only possible outcome of an escalation is a pending review for the assigned welfare
+    officer. Figures measured 7 September 2026 against the working build.
+  </p>
+
+</div>
