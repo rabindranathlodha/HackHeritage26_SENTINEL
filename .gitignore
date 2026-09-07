@@ -25,6 +25,7 @@ ml/artifacts/*
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 
 # Env / secrets — never commit real keys
 .env
