@@ -55,6 +55,8 @@ DISCLAIMER = (
 # Expected severity regresses toward the middle, so few people cross 81 on it
 # alone. Without this, only 33% of true PRIORITY_REVIEW cases raised an alert;
 # at 0.30 that becomes 64%, for roughly 61 more alerts per 3000 people.
+# Those are 5-fold figures; the levels shift with the fold count (34% -> 54% at
+# 3 folds) but the gain does not. training.evaluate re-derives both every run.
 TOP_BAND_TRIGGER_TAU = 0.30
 
 

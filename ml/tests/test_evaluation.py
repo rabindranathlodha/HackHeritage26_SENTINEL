@@ -103,11 +103,34 @@ def test_the_top_band_trigger_is_active_and_its_trade_off_stays_documented(repor
 def test_the_trigger_measurably_improved_detection_of_the_highest_risk_band(report):
     """The change was made for a reason; hold it to that reason.
 
-    Before the trigger, 33.3% of people whose true band was PRIORITY_REVIEW
-    would have raised an alert. If a future change quietly undoes that, this
-    fails rather than the regression going unnoticed.
+    Compare against the same run's untriggered baseline rather than a fixed
+    number. This rate is a proportion over ~90 people, so its absolute level
+    moves with the fold count: the baseline is 33.4% at 5 folds and 34.4% at 3,
+    and the triggered rate 64.4% and 54.4%. A floor calibrated to one of those
+    fails on the other for no reason a reader would recognise as a regression.
+    The paired gain is the stable quantity, and it is the claim being made.
     """
-    assert report["overall"]["priority_alert_rate"] > 0.55
+    evidence = report["top_band_trigger_evidence"]
+    before = evidence["without_trigger"]["true_priority_alerted"]
+    after = report["overall"]["priority_alert_rate"]
+
+    # The sweep table and the headline number have to describe the same
+    # decision rule; they are computed by different paths.
+    in_force = [option for option in evidence["options"] if option["in_force"]]
+    assert len(in_force) == 1, "exactly one row must be marked in force"
+    assert in_force[0]["true_priority_alerted"] == after
+
+    # Measured gains were +0.31 (5-fold) and +0.20 (3-fold); ratios 1.93 and
+    # 1.58. Removing the trigger makes after == before, so any positive margin
+    # catches that outright — these leave room for run-to-run variance while
+    # still failing if the trigger stops earning its false positives.
+    assert after >= before + 0.12
+    assert after >= before * 1.35
+
+    # A collapse in top-band detection, independent of the baseline. At n=90 the
+    # binomial standard error is about 0.05, so this sits ~2.8 SE below the
+    # weaker of the two measurements rather than adjacent to it.
+    assert after > 0.40
 
 
 def test_the_audit_is_out_of_fold_not_scored_on_training_data(report):

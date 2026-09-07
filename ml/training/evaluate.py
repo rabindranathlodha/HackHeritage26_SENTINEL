@@ -387,9 +387,19 @@ def main() -> None:
         for sev in untriggered_severity
     ])
     active = base_alert | (p_priority >= TOP_BAND_TRIGGER_TAU)
-    print(f"without any trigger: {int(base_alert.sum())} alerts, "
-          f"{base_alert[true_priority].mean():.1%} of true PRIORITY people alerted, "
-          f"{(base_alert & ~true_priority).sum()} on people who are not")
+
+    # Recorded in the report, not only printed. The trigger's justification is a
+    # comparison against this baseline, and the comparison has to be made within
+    # a single run: both numbers move with the fold count and the seed, but they
+    # move together.
+    baseline = {
+        "alerts": int(base_alert.sum()),
+        "true_priority_alerted": round(float(base_alert[true_priority].mean()), 4),
+        "non_priority_alerted": int((base_alert & ~true_priority).sum()),
+    }
+    print(f"without any trigger: {baseline['alerts']} alerts, "
+          f"{baseline['true_priority_alerted']:.1%} of true PRIORITY people alerted, "
+          f"{baseline['non_priority_alerted']} on people who are not")
     print(f"in force (tau={TOP_BAND_TRIGGER_TAU}): {int(active.sum())} alerts, "
           f"{active[true_priority].mean():.1%} alerted, "
           f"{(active & ~true_priority).sum()} on people who are not")
@@ -463,6 +473,7 @@ def main() -> None:
                 "regresses toward the middle; only a third of true "
                 "PRIORITY_REVIEW people cross the 81 threshold."
             ),
+            "without_trigger": baseline,
             "options": trigger_rows,
         },
         "pr_curve": curve_path,
