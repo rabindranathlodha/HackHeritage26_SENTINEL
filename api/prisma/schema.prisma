@@ -1,0 +1,134 @@
+// SENTINEL data model — authoritative source: SENTINEL_BUILD_SPEC.md Section 4.
+// Row-Level Security policies (Section 4.1) are applied by a raw SQL migration
+// that runs AFTER this schema's migration. Prisma does not model RLS, so the
+// policies live in prisma/migrations/*_rls_policies/migration.sql.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Roles: PERSONNEL, WELFARE_OFFICER, COMMANDER, ADMIN
+enum Role {
+  PERSONNEL
+  WELFARE_OFFICER
+  COMMANDER
+  ADMIN
+}
+
+enum RiskBand {
+  LOW
+  MODERATE
+  ELEVATED
+  PRIORITY_REVIEW
+}
+
+model User {
+  id               String       @id @default(cuid())
+  role             Role
+  unitId           String // cohort key
+  welfareOfficerId String? // assigned officer (for PERSONNEL)
+  createdAt        DateTime     @default(now())
+  hrSignals        HrSignal[]
+  assessments      Assessment[]
+  biometricConsent Boolean      @default(false) // consent-gate for Model C
+  alerts           Alert[]
+  scores           Score[]
+
+  @@index([unitId])
+  @@index([welfareOfficerId])
+}
+
+model HrSignal {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id])
+  date                  DateTime
+  leaveRequested        Int // days
+  leaveApproved         Int
+  leaveDenied           Int
+  deploymentDays        Int // days in current posting
+  daysSinceHomePosting  Int
+  remoteHazardous       Boolean
+  transfersTrailing12mo Int
+  shiftStartStdDev      Float // duty irregularity
+  nightShiftRatio       Float
+  consecutiveDutyDays   Int
+  trainingHoursVsAvg    Float
+  daysSinceIncident     Int // recency only, never event detail
+
+  @@index([userId, date])
+}
+
+model Assessment {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  submittedAt DateTime @default(now())
+  // Questionnaire (adapted PHQ-9/GAD-7 style, Likert 0-3).
+  //
+  // Spec Section 4 types this `Int[]` and spec 9.3 requires field-level AES-256
+  // for it at rest. Those cannot both hold: ciphertext does not fit in an
+  // integer array. 9.3 wins, because a plaintext questionnaire is the most
+  // sensitive row in the schema. Stored as AES-256-GCM (12-byte IV ‖ 16-byte
+  // tag ‖ ciphertext); see api/src/lib/fieldCrypto.ts.
+  responsesEnc Bytes
+  // Derived NLP contribution ONLY — raw text never stored server-side
+  // (on-device pre-processing)
+  nlpContribution    Float? // 0-1, from on-device Model B
+  language           String @default("en")
+  // Physiological derived contribution (only if consent)
+  physioContribution Float? // 0-1, from Model C
+
+  @@index([userId, submittedAt])
+}
+
+model Score {
+  id             String   @id @default(cuid())
+  userId         String
+  // Spec Section 4 gives Score a bare `userId` with no relation, unlike
+  // HrSignal, Assessment and Alert. Read as an oversight rather than intent:
+  // without the foreign key a Score can outlive or precede the person it
+  // describes, and nothing would notice.
+  user           User     @relation(fields: [userId], references: [id])
+  computedAt     DateTime @default(now())
+  scoreA         Float // structured
+  scoreB         Float? // nlp (nullable if not submitted)
+  scoreC         Float? // physio (nullable if no consent)
+  sentinelScore  Float // fused 0-100
+  band           RiskBand
+  confidenceLow  Float
+  confidenceHigh Float
+  shapCategories Json // {category: contribution} — CATEGORY level only
+  overrideFired  Boolean  @default(false) // did self-report override raise the band
+
+  @@index([userId, computedAt])
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  band      RiskBand
+  status    String   @default("PENDING_REVIEW") // PENDING_REVIEW | REVIEWED | ACTIONED
+  reviewedBy String? // welfare officer id
+  // NO auto-action fields. Human review required.
+
+  @@index([userId, status])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String
+  actorRole    Role
+  action       String // e.g. "VIEW_INDIVIDUAL_SCORE"
+  targetUserId String?
+  at           DateTime @default(now())
+
+  @@index([actorId, at])
+}
