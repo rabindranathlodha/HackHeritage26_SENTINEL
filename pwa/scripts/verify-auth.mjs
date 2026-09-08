@@ -13,7 +13,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter } from "./cdp.mjs";
+import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -124,7 +124,7 @@ try {
     document.querySelector('form').requestSubmit();
     return true;
   `);
-  await waitFor(cdp, `location.pathname === '/home'`, "the redirect to /home");
+  await waitFor(cdp, settled("/home"), "the redirect to /home");
 
   const afterLogin = await cdp.evaluate(`
     return { path: location.pathname,
@@ -149,13 +149,22 @@ try {
          found.length === 0, found.length ? `found: ${found.join(", ")}` : "none");
 
   // --- Sign out actually ends the session ---------------------------------
+  // Hydration, not just "loaded": the sign-out button submits a server action,
+  // and a synthetic click before React attaches does nothing at all. A React
+  // fiber on the node is the signal that it will respond.
+  await waitFor(
+    cdp,
+    `(() => { const el = document.querySelector('form button');
+              return el && Object.keys(el).some(k => k.startsWith('__react')); })()`,
+    "the sign-out button to become interactive",
+  );
   await cdp.evaluate(`
     const button = [...document.querySelectorAll('button')]
       .find(b => b.textContent.trim().toLowerCase() === 'sign out');
     button?.click();
     return true;
   `);
-  await waitFor(cdp, `location.pathname === '/login'`, "sign-out to complete");
+  await waitFor(cdp, settled("/login"), "sign-out to complete");
 
   await cdp.send("Page.navigate", { url: `${base}/home` });
   await settle();

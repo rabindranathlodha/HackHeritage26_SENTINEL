@@ -3,10 +3,10 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { Locale } from "@/i18n/locale";
-import { keepEntry, stashContribution } from "@/lib/journal";
+import { entries as keptEntries, keepEntry, stashContribution } from "@/lib/journal";
 import { capability, scoreText } from "@/lib/onnx";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 
@@ -30,13 +30,21 @@ export function JournalEditor({ locale }: { locale: Locale }) {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [canScore, setCanScore] = useState<boolean | null>(null);
+  const [kept, setKept] = useState<{ id: string; writtenAt: number; text: string }[]>([]);
+
+  // What the person chose to keep. Until now an entry could be kept and never
+  // shown again, which made the checkbox a promise with nowhere to land.
+  const refreshKept = useCallback(async () => {
+    setKept(await keptEntries());
+  }, []);
 
   useEffect(() => {
     // A capability check, not a load. Whether WebAssembly exists is known
     // immediately; whether the model downloads is not asked until there is
     // something to score. Opening the journal must not cost ~190 MB.
     setCanScore(capability().available);
-  }, []);
+    void refreshKept();
+  }, [refreshKept]);
 
   async function save() {
     const words = text.trim();
@@ -51,7 +59,10 @@ export function JournalEditor({ locale }: { locale: Locale }) {
       if (contribution !== null) await stashContribution(contribution);
 
       // Their words, kept only if they said so.
-      if (keep) await keepEntry(words);
+      if (keep) {
+        await keepEntry(words);
+        await refreshKept();
+      }
 
       setText("");
       setSaved(true);
@@ -112,6 +123,36 @@ export function JournalEditor({ locale }: { locale: Locale }) {
       >
         {busy ? t("processing") : t("save")}
       </button>
+
+      <section className="border-border mt-2 flex flex-col gap-3 border-t pt-6">
+        <h2 className="text-base font-medium">{t("historyHeading")}</h2>
+        {kept.length === 0 ? (
+          /* The empty state, written as guidance rather than as an absence. */
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {t("historyEmpty")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {kept.map((entry) => (
+              <li
+                key={entry.id}
+                className="border-border bg-card rounded-2xl border p-4 text-sm leading-relaxed"
+              >
+                <time
+                  className="text-muted-foreground block text-xs tabular-nums"
+                  dateTime={new Date(entry.writtenAt).toISOString()}
+                >
+                  {new Date(entry.writtenAt).toLocaleDateString(locale, {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </time>
+                <p className="mt-1 whitespace-pre-wrap">{entry.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {saved && (
         <motion.p

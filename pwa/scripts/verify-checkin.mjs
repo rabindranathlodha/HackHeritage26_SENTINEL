@@ -11,7 +11,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter } from "./cdp.mjs";
+import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -83,7 +83,7 @@ try {
     document.querySelector('form').requestSubmit();
     return true;
   `);
-  const signedIn = await waitFor(cdp, `location.pathname === '/home'`, "sign-in");
+  const signedIn = await waitFor(cdp, settled("/home"), "sign-in");
   record("signed in and reached the home screen", signedIn);
 
   const home = await cdp.evaluate(`return { body: document.body.innerText }`);

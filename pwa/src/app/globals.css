@@ -48,41 +48,88 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* The palette, taken from the app's own mark (public/icons/icon.svg): a deep
+   ink blue, a mid teal, and a soft glow. Neutrals carry a faint cool cast
+   rather than being pure grey — a chosen neutral reads as considered, an
+   unchosen one reads as a default nobody looked at.
+
+   Calm is the brief, so nothing here is saturated: this is a wellbeing tool
+   opened by someone tired at the end of a shift, not a dashboard competing for
+   attention. */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.978 0.004 210);
+  --foreground: oklch(0.28 0.035 243);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.28 0.035 243);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.28 0.035 243);
+  --primary: oklch(0.45 0.079 228);
+  --primary-foreground: oklch(0.985 0.003 210);
+  --secondary: oklch(0.948 0.008 210);
+  --secondary-foreground: oklch(0.32 0.035 240);
+  --muted: oklch(0.948 0.008 210);
+  --muted-foreground: oklch(0.455 0.024 235);
+  --accent: oklch(0.93 0.022 195);
+  --accent-foreground: oklch(0.3 0.04 235);
+  --destructive: oklch(0.505 0.15 25);
+  --border: oklch(0.9 0.009 215);
+  --input: oklch(0.9 0.009 215);
+  --ring: oklch(0.6 0.085 215);
+  --chart-1: oklch(0.45 0.079 228);
+  --chart-2: oklch(0.62 0.07 200);
+  --chart-3: oklch(0.75 0.075 185);
+  --chart-4: oklch(0.55 0.05 250);
+  --chart-5: oklch(0.68 0.04 220);
+  --radius: 0.875rem;
+  --sidebar: oklch(0.978 0.004 210);
+  --sidebar-foreground: oklch(0.28 0.035 243);
+  --sidebar-primary: oklch(0.45 0.079 228);
+  --sidebar-primary-foreground: oklch(0.985 0.003 210);
+  --sidebar-accent: oklch(0.93 0.022 195);
+  --sidebar-accent-foreground: oklch(0.3 0.04 235);
+  --sidebar-border: oklch(0.9 0.009 215);
+  --sidebar-ring: oklch(0.6 0.085 215);
 }
 
+/* Dark is not an afterthought here. Personnel check in at the end of a shift,
+   often at night, often in a shared room — a bright screen is conspicuous as
+   well as unpleasant. The ground is the mark's ink blue and the accent becomes
+   the glow, so the identity holds rather than inverting into something else. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: oklch(0.225 0.035 245);
+    --foreground: oklch(0.94 0.008 205);
+    --card: oklch(0.268 0.034 244);
+    --card-foreground: oklch(0.94 0.008 205);
+    --popover: oklch(0.268 0.034 244);
+    --popover-foreground: oklch(0.94 0.008 205);
+    --primary: oklch(0.8 0.088 182);
+    --primary-foreground: oklch(0.225 0.04 245);
+    --secondary: oklch(0.31 0.03 243);
+    --secondary-foreground: oklch(0.94 0.008 205);
+    --muted: oklch(0.31 0.03 243);
+    --muted-foreground: oklch(0.755 0.021 205);
+    --accent: oklch(0.34 0.035 220);
+    --accent-foreground: oklch(0.94 0.008 205);
+    --destructive: oklch(0.71 0.14 25);
+    --border: oklch(1 0 0 / 13%);
+    --input: oklch(1 0 0 / 16%);
+    --ring: oklch(0.7 0.07 195);
+    --sidebar: oklch(0.225 0.035 245);
+    --sidebar-foreground: oklch(0.94 0.008 205);
+    --sidebar-primary: oklch(0.8 0.088 182);
+    --sidebar-primary-foreground: oklch(0.225 0.04 245);
+    --sidebar-accent: oklch(0.34 0.035 220);
+    --sidebar-accent-foreground: oklch(0.94 0.008 205);
+    --sidebar-border: oklch(1 0 0 / 13%);
+    --sidebar-ring: oklch(0.7 0.07 195);
+  }
+}
+
+/* The class-based variant stays, so a future preference toggle works without
+   this file changing. The media query above is what actually fires today,
+   because there is no toggle and a person's own system setting is the honest
+   default. */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -121,10 +168,61 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+
   html {
     @apply font-sans;
+    /* Respects a person's own text-size setting instead of overriding it. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Slightly open by default: this copy is read on a small screen, often in
+       poor light, sometimes in a second language. */
+    line-height: 1.6;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* One face, worked hard, rather than a second family. A display face would
+     cost another network request on a phone that already downloads a model,
+     and "fast load beats spectacle" is the brief. The hierarchy comes from
+     weight, size and tracking instead. */
+  h1 {
+    letter-spacing: -0.021em;
+  }
+
+  h2 {
+    letter-spacing: -0.012em;
+  }
+
+  /* Keyboard focus must be visible on every control, including the ones styled
+     as cards. Lighthouse does not check this; a person navigating by keyboard
+     notices immediately. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* The system-wide reduced-motion preference, honoured globally rather than
+     component by component. Individual components also check it, so a missed
+     component still degrades correctly. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

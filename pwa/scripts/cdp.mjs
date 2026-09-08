@@ -100,3 +100,13 @@ export function reporter() {
     },
   };
 }
+
+/**
+ * True once a screen has finished loading, not merely once the URL changed.
+ *
+ * loading.tsx introduced a Suspense boundary, so a route can be at its final
+ * path while still showing a skeleton. Waiting on the path alone reads the
+ * skeleton and reports that a link or a button is missing.
+ */
+export const settled = (path) =>
+  `location.pathname === '${path}' && !document.querySelector('[aria-busy="true"]')`;

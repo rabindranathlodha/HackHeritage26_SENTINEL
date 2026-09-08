@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter } from "./cdp.mjs";
+import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -85,7 +85,7 @@ try {
     document.querySelector('form').requestSubmit();
     return true;
   `);
-  record("signed in", await waitFor(cdp, `location.pathname === '/home'`, "sign-in"));
+  record("signed in", await waitFor(cdp, settled("/home"), "sign-in"));
 
   record(
     "the home screen offers the transparency screen",

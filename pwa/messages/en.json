@@ -58,7 +58,10 @@
     "voiceUnsupported": "This phone cannot turn speech into words on its own, so voice is off. Typing works exactly the same.",
     "voiceDownload": "Download the on-device language pack to use voice",
     "voiceDownloading": "Getting the language pack ready…",
-    "voiceError": "The microphone stopped. Nothing was kept — you can try again or type."
+    "voiceError": "The microphone stopped. Nothing was kept — you can try again or type.",
+    "historyHeading": "Kept on this phone",
+    "historyEmpty": "Nothing kept yet. Tick the box above if you want an entry to stay on your phone.",
+    "historyCount": "{count, plural, one {# entry} other {# entries}}"
   },
   "transparency": {
     "title": "What this app does with your information",
@@ -101,5 +104,13 @@
   "errors": {
     "generic": "Something did not work. Nothing you entered has been lost.",
     "retry": "Try again"
+  },
+  "states": {
+    "loading": "Just a moment…",
+    "errorTitle": "That did not load",
+    "errorBody": "Nothing you have written or answered has been lost. Try again, or come back in a moment.",
+    "errorRetry": "Try again",
+    "notFoundTitle": "That page is not here",
+    "notFoundBody": "The link may be old. Everything else is where you left it."
   }
 }

@@ -12,7 +12,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter } from "./cdp.mjs";
+import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -119,7 +119,7 @@ try {
     document.querySelector('form').requestSubmit();
     return true;
   `);
-  record("signed in", await waitFor(cdp, `location.pathname === '/home'`, "sign-in"));
+  record("signed in", await waitFor(cdp, settled("/home"), "sign-in"));
 
   // --- Submit with the network off -----------------------------------------
   await cdp.send("Page.navigate", { url: `${base}/check-in` });

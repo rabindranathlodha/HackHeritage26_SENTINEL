@@ -20,7 +20,7 @@ import { parseArgs } from "node:util";
 
 import { launch } from "chrome-launcher";
 
-import { CDP, killChrome, reporter } from "./cdp.mjs";
+import { CDP, killChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -151,7 +151,7 @@ try {
     document.querySelector('form').requestSubmit();
     return true;
   `);
-  record("signed in", await waitFor(cdp, `location.pathname === '/home'`, "sign-in"));
+  record("signed in", await waitFor(cdp, settled("/home"), "sign-in"));
 
   // --- The journal, with the speech API under observation ------------------
   // addScriptToEvaluateOnNewDocument runs BEFORE the app's own scripts, so the

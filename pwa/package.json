@@ -19,7 +19,8 @@
     "verify:ondevice": "node scripts/verify-ondevice.mjs",
     "verify:voice": "node scripts/verify-voice.mjs",
     "verify:consent": "node scripts/verify-consent.mjs",
-    "verify:transparency": "node scripts/verify-transparency.mjs"
+    "verify:transparency": "node scripts/verify-transparency.mjs",
+    "verify:polish": "node scripts/verify-polish.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
