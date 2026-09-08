@@ -248,13 +248,27 @@ def main() -> None:
                                 args.max_length, "ENGLISH (official Dreaddit test split)")
 
     hindi_subset = test_df.head(args.hindi_eval_size)
-    hindi_texts = back_translate(list(hindi_subset["text"]))
-    # Persisted so vocabulary pruning can keep Devanagari coverage. Without it
+    # Persisted so vocabulary pruning can keep Devanagari coverage — without it
     # the pruned on-device model would map every Devanagari token to [UNK] and
-    # silently lose the multilingual behaviour this encoder was chosen for.
-    with open(os.path.join(args.artifacts, "model_b_hindi_eval.json"), "w",
-              encoding="utf-8") as fh:
-        json.dump(hindi_texts, fh, ensure_ascii=False)
+    # silently lose the multilingual behaviour this encoder was chosen for — and
+    # reused so that two encoders trained at different times are compared on the
+    # same Hindi sentences. Re-translating per run would make a paired
+    # comparison between them meaningless. Delete the file to regenerate.
+    hindi_path = os.path.join(args.artifacts, "model_b_hindi_eval.json")
+    if os.path.exists(hindi_path):
+        with open(hindi_path, encoding="utf-8") as fh:
+            hindi_texts = json.load(fh)
+        if len(hindi_texts) != len(hindi_subset):
+            raise SystemExit(
+                f"{hindi_path} holds {len(hindi_texts)} texts but this run wants "
+                f"{len(hindi_subset)}. Delete it to regenerate, and re-evaluate "
+                "every model that was measured against the old set."
+            )
+        print(f"reusing {len(hindi_texts)} cached Hindi evaluation translations")
+    else:
+        hindi_texts = back_translate(list(hindi_subset["text"]))
+        with open(hindi_path, "w", encoding="utf-8") as fh:
+            json.dump(hindi_texts, fh, ensure_ascii=False)
     hi_metrics = evaluate_split(trainer, tokenizer, hindi_texts, hindi_subset["label"],
                                 args.max_length, "HINDI (machine-translated from the same posts)")
 

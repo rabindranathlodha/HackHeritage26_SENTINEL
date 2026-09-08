@@ -9,6 +9,12 @@ WORKDIR /app
 # Install deps first so source edits don't invalidate the dependency layer.
 COPY pyproject.toml ./
 RUN pip install --upgrade pip && pip install fastapi "uvicorn[standard]" "pydantic>=2" pydantic-settings "psycopg[binary]" redis pytest httpx numpy pandas pyarrow faker scikit-learn xgboost shap joblib matplotlib
+# ruff belongs in the image, not in whichever container happens to be running.
+# It was missing here and only appeared to work because it had been installed
+# into a live container by hand; recreating the container lost it silently and
+# `docker compose exec ml ruff check` started failing with "not found". Same
+# failure mode as onnxconverter-common, recorded in docs/BUILD_LOG.md.
+RUN pip install ruff
 
 # Model B (IndicBERT/MuRIL) needs PyTorch. CPU-only wheels: this service does
 # inference on CPU and the fine-tune is small enough not to need a GPU.
