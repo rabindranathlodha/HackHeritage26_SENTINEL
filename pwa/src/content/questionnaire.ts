@@ -42,8 +42,11 @@ export type QuestionnaireItem = {
   positive: boolean;
 };
 
-export const SCALE_MIN = 1;
-export const SCALE_MAX = 5;
+// 0-3, the PHQ-9/GAD-7 response range, which is also what the app tier
+// validates. A four-point scale is the faithful adaptation; widening it to five
+// would have meant changing a shipped contract to suit new copy.
+export const SCALE_MIN = 0;
+export const SCALE_MAX = 3;
 
 export const ITEMS: readonly QuestionnaireItem[] = [
   {

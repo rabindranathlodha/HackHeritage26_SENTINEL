@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import { auth, signOut } from "@/auth";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { getCheckInStatus } from "@/lib/api";
 
 export async function generateMetadata() {
   const t = await getTranslations("app");
@@ -10,8 +12,19 @@ export async function generateMetadata() {
 
 // Spec 4.2: never a score, a band, or a risk number. Supportive status only.
 export default async function HomePage() {
-  await auth();
+  const session = await auth();
   const t = await getTranslations("home");
+
+  // If the app tier is unreachable, offer the check-in rather than block it.
+  // A person who wants to check in should never be told they cannot.
+  let due = true;
+  try {
+    if (session?.user?.id) {
+      due = (await getCheckInStatus(session.user.id)).due;
+    }
+  } catch {
+    due = true;
+  }
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-end gap-8 px-6 pb-16 pt-24">
@@ -20,8 +33,20 @@ export default async function HomePage() {
           {t("greeting")}
         </h1>
         <p className="text-muted-foreground text-base leading-relaxed">
-          {t("supportive")}
+          {/* Both states are supportive. Neither reports on the person. */}
+          {due ? t("supportive") : t("checkedIn")}
         </p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        {due && (
+          <Link
+            href="/check-in"
+            className="bg-primary text-primary-foreground flex min-h-14 items-center justify-center rounded-xl text-base font-medium"
+          >
+            {t("startCheckIn")}
+          </Link>
+        )}
       </div>
 
       <LanguageToggle />
@@ -34,7 +59,7 @@ export default async function HomePage() {
       >
         <button
           type="submit"
-          className="border-border h-14 w-full rounded-xl border text-base font-medium"
+          className="border-border min-h-14 w-full rounded-xl border text-base font-medium"
         >
           {t("signOut")}
         </button>

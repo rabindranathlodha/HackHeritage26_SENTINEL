@@ -33,12 +33,12 @@
     "thanksBody": "That is all for this week. Your welfare team uses this to know where support is needed.",
     "queued": "Saved on your phone. It will be sent when you are back on a network.",
     "scale": {
-      "1": "Not at all",
-      "2": "A little",
-      "3": "Somewhat",
-      "4": "Quite a lot",
-      "5": "Very much"
-    }
+      "0": "Not at all",
+      "1": "A little",
+      "2": "Quite a lot",
+      "3": "Very much"
+    },
+    "backHome": "Back to home"
   },
   "journal": {
     "title": "Write something",
