@@ -1,0 +1,83 @@
+{
+  "app": {
+    "name": "Companion",
+    "tagline": "Your private wellness companion"
+  },
+  "login": {
+    "heading": "Your private wellness companion",
+    "reassurance": "This space is yours. What you write here stays on your phone.",
+    "idLabel": "Your ID",
+    "passwordLabel": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "failed": "That ID and password did not match. Please try again."
+  },
+  "home": {
+    "greeting": "How are you doing this week?",
+    "supportive": "Your check-in helps your welfare team support you.",
+    "checkedIn": "Thanks for checking in this week.",
+    "startCheckIn": "Start this week's check-in",
+    "openJournal": "Write something",
+    "openTransparency": "What this app does with your information",
+    "signOut": "Sign out"
+  },
+  "checkIn": {
+    "title": "Wellness check",
+    "intro": "A few questions about your week. There are no right answers, and nobody sees your individual replies except your welfare team.",
+    "progress": "Question {current} of {total}",
+    "next": "Next",
+    "back": "Back",
+    "submit": "Finish",
+    "submitting": "Saving…",
+    "thanks": "Thank you for checking in",
+    "thanksBody": "That is all for this week. Your welfare team uses this to know where support is needed.",
+    "queued": "Saved on your phone. It will be sent when you are back on a network.",
+    "scale": {
+      "1": "Not at all",
+      "2": "A little",
+      "3": "Somewhat",
+      "4": "Quite a lot",
+      "5": "Very much"
+    }
+  },
+  "journal": {
+    "title": "Write something",
+    "prompt": "Anything you want to put into words. Nobody reads this but you.",
+    "onDevice": "Your words stay on this phone. Only a single number leaves it.",
+    "save": "Save",
+    "record": "Record a voice note",
+    "stop": "Stop"
+  },
+  "transparency": {
+    "title": "What this app does with your information",
+    "collectedHeading": "What is collected",
+    "collectedBody": "Your weekly check-in answers. If you write or speak a journal entry, it is processed on this phone and only a single number leaves it. A wellness signal from a wearable, but only if you turn it on.",
+    "onDeviceHeading": "What stays on your phone",
+    "onDeviceBody": "Your journal words and your voice. They are never sent anywhere and are never stored on a server.",
+    "teamHeading": "What your welfare team sees",
+    "teamBody": "Wellbeing trends for a group, never one person on their own. An individual notice reaches a welfare officer only when support may be needed, and it is a person who decides what happens next.",
+    "commanderHeading": "What your commander sees",
+    "commanderBody": "Group trends only. Your individual replies are not shown to your chain of command.",
+    "controlsHeading": "What you control",
+    "controlsBody": "You can turn the wellness signal off at any time and the app keeps working. Nothing in this app contacts anyone on your behalf."
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "biometricHeading": "Wellness signal",
+    "biometricBody": "Share resting heart rate and sleep from a wearable. Off unless you turn it on, and you can turn it off again whenever you want.",
+    "clearJournal": "Delete my journal from this phone",
+    "signOut": "Sign out"
+  },
+  "offline": {
+    "title": "You are offline",
+    "body": "You can keep using the app. Anything you save will be sent when you are back on a network.",
+    "banner": "No network. You can keep going.",
+    "syncing": "Sending {count, plural, one {# check-in} other {# check-ins}}…",
+    "synced": "Everything is sent"
+  },
+  "errors": {
+    "generic": "Something did not work. Nothing you entered has been lost.",
+    "retry": "Try again"
+  }
+}

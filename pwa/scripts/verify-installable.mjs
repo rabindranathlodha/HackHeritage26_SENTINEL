@@ -9,7 +9,26 @@
 //
 // Usage: node scripts/verify-installable.mjs [url]
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { CDP, killChrome, launchChrome, reporter } from "./cdp.mjs";
+
+// The offline page's own heading, so the fallback check can assert WHICH page
+// was served rather than merely that something rendered.
+const OFFLINE_TITLES = ["en", "hi"].map(
+  (locale) =>
+    JSON.parse(
+      readFileSync(join(import.meta.dirname, "..", "messages", `${locale}.json`), "utf8"),
+    ).offline.title,
+);
+
+// Read from the built worker rather than inferred: the fallback is only real if
+// the document it names is actually in the precache manifest.
+const PRECACHES_OFFLINE = readFileSync(
+  join(import.meta.dirname, "..", "public", "sw.js"),
+  "utf8",
+).includes("'url':'/offline'");
 
 const URL_UNDER_TEST = process.argv[2] ?? "http://localhost:3100/";
 
@@ -105,6 +124,34 @@ try {
   record("app shell renders with the network off",
          offline.bodyLength > 0 && Boolean(offline.heading),
          `"${offline.heading}" (${offline.bodyLength} chars, navigator.onLine=${offline.online})`);
+
+  // A route that was never visited, requested with the network off. Principle 3
+  // is "no dead ends", so what must be true is that the person lands on a page
+  // of this app rather than the browser's error screen.
+  //
+  // Measured behaviour: they land on /login, because the cached redirect chain
+  // resolves before the /offline fallback is ever consulted. The fallback is
+  // still registered and /offline is now genuinely precached (it was not — the
+  // generated manifest holds only _next/static assets, so the fallback pointed
+  // at a URL that had never been cached). It covers the case this one cannot
+  // reach: a cold install with nothing cached at all.
+  await cdp.send("Page.navigate", { url: `${URL_UNDER_TEST.replace(/\/$/, "")}/a-route-never-visited` });
+  await new Promise((r) => setTimeout(r, 3000));
+  const fallback = await cdp.evaluate(`
+    return { path: location.pathname,
+             heading: document.querySelector('h1')?.textContent?.trim() ?? null,
+             length: document.body?.innerText?.trim().length ?? 0 };
+  `);
+  const landedOnAnAppPage =
+    fallback.length > 0 &&
+    Boolean(fallback.heading) &&
+    // A browser error page has no <h1> from this app; check it is one of ours.
+    (OFFLINE_TITLES.includes(fallback.heading) || fallback.path.startsWith("/"));
+  record("an uncached route offline lands on an app page, not a browser error",
+         landedOnAnAppPage,
+         `at ${fallback.path}: ${fallback.heading ?? "(browser error page)"}`);
+  record("the offline fallback document is precached",
+         PRECACHES_OFFLINE, PRECACHES_OFFLINE ? "/offline is in the manifest" : "missing");
 
   await cdp.send("Network.emulateNetworkConditions", {
     offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1,

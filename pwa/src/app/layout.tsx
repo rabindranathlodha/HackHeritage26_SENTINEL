@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 
 import { ServiceWorker } from "@/components/ServiceWorker";
 
@@ -50,13 +52,19 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // lang has to follow the chosen locale, not sit hardcoded at "en" — screen
+  // readers pick pronunciation from it, and an accessibility audit checks it.
+  const locale = await getLocale();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} antialiased`}>
-        <ServiceWorker>{children}</ServiceWorker>
+        <NextIntlClientProvider>
+          <ServiceWorker>{children}</ServiceWorker>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -4,8 +4,17 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-// Copy here is placeholder and moves to messages/{en,hi}.json at step 3.3.
-export function LoginForm() {
+type Labels = {
+  id: string;
+  password: string;
+  submit: string;
+  submitting: string;
+  failed: string;
+};
+
+// Copy arrives as props from the server component rather than being looked up
+// here, so this file holds no user-facing string at all (spec 8).
+export function LoginForm({ labels }: { labels: Labels }) {
   const router = useRouter();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -36,7 +45,7 @@ export function LoginForm() {
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
         <label htmlFor="loginId" className="text-sm font-medium">
-          Your ID
+          {labels.id}
         </label>
         <input
           id="loginId"
@@ -45,13 +54,13 @@ export function LoginForm() {
           required
           value={loginId}
           onChange={(e) => setLoginId(e.target.value)}
-          className="border-border bg-card h-14 rounded-xl border px-4 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="border-border bg-card focus-visible:ring-ring/50 h-14 rounded-xl border px-4 text-base outline-none focus-visible:ring-3"
         />
       </div>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="password" className="text-sm font-medium">
-          Password
+          {labels.password}
         </label>
         <input
           id="password"
@@ -61,7 +70,7 @@ export function LoginForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border-border bg-card h-14 rounded-xl border px-4 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="border-border bg-card focus-visible:ring-ring/50 h-14 rounded-xl border px-4 text-base outline-none focus-visible:ring-3"
         />
       </div>
 
@@ -69,7 +78,7 @@ export function LoginForm() {
           unknown id from a wrong password, and neither does this. */}
       {failed && (
         <p role="alert" className="text-destructive text-sm">
-          That ID and password did not match. Please try again.
+          {labels.failed}
         </p>
       )}
 
@@ -78,7 +87,7 @@ export function LoginForm() {
         disabled={pending}
         className="bg-primary text-primary-foreground mt-2 h-14 rounded-xl text-base font-medium disabled:opacity-60"
       >
-        {pending ? "Signing in…" : "Sign in"}
+        {pending ? labels.submitting : labels.submit}
       </button>
     </form>
   );
