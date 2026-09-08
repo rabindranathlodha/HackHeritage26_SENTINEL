@@ -79,7 +79,11 @@
     "biometricHeading": "Wellness signal",
     "biometricBody": "Share resting heart rate and sleep from a wearable. Off unless you turn it on, and you can turn it off again whenever you want.",
     "clearJournal": "Delete my journal from this phone",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "consentFailed": "That did not save. Your setting has not changed — please try again.",
+    "clearJournalDone": "Deleted from this phone",
+    "localHeading": "What is stored on this phone",
+    "localBody": "Anything you chose to keep, and check-ins waiting to be sent. Deleting is immediate and cannot be undone."
   },
   "offline": {
     "title": "You are offline",

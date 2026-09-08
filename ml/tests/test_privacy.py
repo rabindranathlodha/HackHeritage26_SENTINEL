@@ -306,3 +306,77 @@ def test_a_stored_credential_is_not_a_recoverable_password(owner_conn):
     assert int(r) >= 8 and int(p) >= 1
     assert len(base64.b64decode(salt)) >= 16
     assert len(base64.b64decode(digest)) >= 32
+
+
+# Self-service consent (PWA spec 3.8, principle 4)
+#
+# Consent is only reversible if the person can reverse it, which means
+# sentinel_personnel needs UPDATE on "User" — and that is a privilege worth
+# bounding precisely. The grant is column-scoped so a consent toggle cannot
+# become a way to change your own role.
+
+
+def test_a_person_can_withdraw_their_own_consent(app_conn, owner_conn, cohort):
+    """Principle 4: opt-in, and off again at any time, by the person themselves."""
+    owner_conn.execute(
+        'UPDATE "User" SET "biometricConsent" = true WHERE id = %s', (cohort.alerted,)
+    )
+    owner_conn.commit()
+
+    act_as(app_conn, "sentinel_personnel", cohort.alerted)
+    app_conn.execute(
+        'UPDATE "User" SET "biometricConsent" = false WHERE id = %s', (cohort.alerted,)
+    )
+    app_conn.commit()
+
+    still = owner_conn.execute(
+        'SELECT "biometricConsent" FROM "User" WHERE id = %s', (cohort.alerted,)
+    ).fetchone()
+    assert still[0] is False
+
+
+def test_the_consent_grant_cannot_be_used_to_change_a_role(app_conn, cohort):
+    """The escalation this column-scoped grant exists to prevent.
+
+    A table-wide UPDATE would let anyone with a session promote themselves to
+    COMMANDER — and a commander sees cohort aggregates. Postgres checks column
+    privileges separately from row policies, so this is denied outright rather
+    than filtered to zero rows.
+    """
+    act_as(app_conn, "sentinel_personnel", cohort.alerted)
+
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        app_conn.execute(
+            'UPDATE "User" SET role = \'COMMANDER\' WHERE id = %s', (cohort.alerted,)
+        )
+
+
+@pytest.mark.parametrize("column", ["unitId", "welfareOfficerId"])
+def test_no_other_column_can_be_changed(app_conn, cohort, column):
+    """Reassigning your own unit or welfare officer is not a consent decision."""
+    act_as(app_conn, "sentinel_personnel", cohort.alerted)
+
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        app_conn.execute(
+            f'UPDATE "User" SET "{column}" = %s WHERE id = %s',
+            ("something-else", cohort.alerted),
+        )
+
+
+def test_a_person_cannot_change_anybody_elses_consent(app_conn, owner_conn, cohort):
+    """Row policy, not just column policy: the update matches no row at all."""
+    owner_conn.execute(
+        'UPDATE "User" SET "biometricConsent" = false WHERE id = %s', (cohort.quiet,)
+    )
+    owner_conn.commit()
+
+    act_as(app_conn, "sentinel_personnel", cohort.alerted)
+    app_conn.execute(
+        'UPDATE "User" SET "biometricConsent" = true WHERE id = %s', (cohort.quiet,)
+    )
+    app_conn.commit()
+
+    unchanged = owner_conn.execute(
+        'SELECT "biometricConsent" FROM "User" WHERE id = %s', (cohort.quiet,)
+    ).fetchone()
+    assert unchanged[0] is False

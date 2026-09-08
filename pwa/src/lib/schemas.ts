@@ -38,6 +38,10 @@ export const assessmentAckSchema = z.object({
   duplicate: z.boolean().optional(),
 });
 
+export const consentSchema = z.object({
+  biometricConsent: z.boolean(),
+});
+
 export const checkInStatusSchema = z.object({
   due: z.boolean(),
   last_check_in: z.string().nullable(),

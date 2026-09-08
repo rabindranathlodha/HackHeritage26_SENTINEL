@@ -3,6 +3,7 @@ import "server-only";
 import {
   assessmentAckSchema,
   checkInStatusSchema,
+  consentSchema,
   type CheckInStatus,
 } from "@/lib/schemas";
 
@@ -60,4 +61,24 @@ export async function getCheckInStatus(userId: string): Promise<CheckInStatus> {
     throw new Error(`app tier responded ${res.status}`);
   }
   return checkInStatusSchema.parse(await res.json());
+}
+
+export async function getConsent(userId: string): Promise<boolean> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/consent?userId=${encodeURIComponent(userId)}`,
+    { headers: internalHeaders(), cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`app tier responded ${res.status}`);
+  return consentSchema.parse(await res.json()).biometricConsent;
+}
+
+export async function setConsent(userId: string, value: boolean): Promise<boolean> {
+  const res = await fetch(`${API_BASE_URL}/api/consent`, {
+    method: "PUT",
+    headers: internalHeaders(),
+    body: JSON.stringify({ userId, biometricConsent: value }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`app tier responded ${res.status}`);
+  return consentSchema.parse(await res.json()).biometricConsent;
 }

@@ -15,6 +15,7 @@ export async function generateMetadata() {
 export default async function HomePage() {
   const session = await auth();
   const t = await getTranslations("home");
+  const settings = await getTranslations("settings");
 
   // If the app tier is unreachable, offer the check-in rather than block it.
   // A person who wants to check in should never be told they cannot.
@@ -56,6 +57,13 @@ export default async function HomePage() {
           className="border-border flex min-h-14 items-center justify-center rounded-xl border text-base font-medium"
         >
           {t("openJournal")}
+        </Link>
+
+        <Link
+          href="/settings"
+          className="border-border flex min-h-14 items-center justify-center rounded-xl border text-base font-medium"
+        >
+          {settings("title")}
         </Link>
       </div>
 

@@ -17,7 +17,8 @@
     "verify:offline": "node scripts/verify-offline.mjs",
     "ort:assets": "node scripts/copy-ort-assets.mjs",
     "verify:ondevice": "node scripts/verify-ondevice.mjs",
-    "verify:voice": "node scripts/verify-voice.mjs"
+    "verify:voice": "node scripts/verify-voice.mjs",
+    "verify:consent": "node scripts/verify-consent.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",
