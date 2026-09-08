@@ -10,6 +10,9 @@ export const DB_ROLES = [
   "sentinel_commander",
   "sentinel_admin",
   "sentinel_scoring",
+  // Verifies a password and nothing else. It can read PersonnelCredential and
+  // User; it has no privilege on any welfare table.
+  "sentinel_auth",
 ] as const;
 
 export type DbRole = (typeof DB_ROLES)[number];

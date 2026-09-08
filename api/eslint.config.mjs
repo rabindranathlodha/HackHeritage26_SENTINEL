@@ -20,4 +20,10 @@ export default tseslint.config(
       eqeqeq: ["error", "always"],
     },
   },
+  {
+    // An operator CLI: its console output IS the interface, not a stray debug
+    // line left in a request path.
+    files: ["prisma/issue-credentials.ts"],
+    rules: { "no-console": "off" },
+  },
 );

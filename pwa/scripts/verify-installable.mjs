@@ -9,87 +9,32 @@
 //
 // Usage: node scripts/verify-installable.mjs [url]
 
-import { launch } from "chrome-launcher";
+import { CDP, killChrome, launchChrome, reporter } from "./cdp.mjs";
 
 const URL_UNDER_TEST = process.argv[2] ?? "http://localhost:3100/";
 
-/** Minimal CDP client. Chrome speaks this over one WebSocket; no library needed. */
-class CDP {
-  #ws;
-  #id = 0;
-  #pending = new Map();
-
-  static async attach(port, url) {
-    const res = await fetch(
-      `http://127.0.0.1:${port}/json/new?${encodeURIComponent(url)}`,
-      { method: "PUT" },
-    );
-    const target = await res.json();
-    const client = new CDP();
-    await client.#connect(target.webSocketDebuggerUrl);
-    return client;
-  }
-
-  #connect(wsUrl) {
-    this.#ws = new WebSocket(wsUrl);
-    this.#ws.addEventListener("message", (event) => {
-      const message = JSON.parse(event.data);
-      const resolver = this.#pending.get(message.id);
-      if (!resolver) return;
-      this.#pending.delete(message.id);
-      if (message.error) {
-        resolver.reject(new Error(message.error.message));
-      } else {
-        resolver.resolve(message.result);
-      }
-    });
-    return new Promise((resolve, reject) => {
-      this.#ws.addEventListener("open", resolve, { once: true });
-      this.#ws.addEventListener("error", reject, { once: true });
-    });
-  }
-
-  send(method, params = {}) {
-    const id = ++this.#id;
-    this.#ws.send(JSON.stringify({ id, method, params }));
-    return new Promise((resolve, reject) =>
-      this.#pending.set(id, { resolve, reject }),
-    );
-  }
-
-  /** Evaluate in the page and return the JSON value, not a remote handle. */
-  async evaluate(expression) {
-    const { result, exceptionDetails } = await this.send("Runtime.evaluate", {
-      expression: `(async () => { ${expression} })()`,
-      awaitPromise: true,
-      returnByValue: true,
-    });
-    if (exceptionDetails) {
-      throw new Error(exceptionDetails.exception?.description ?? "evaluate failed");
-    }
-    return result.value;
-  }
-
-  close() {
-    this.#ws.close();
-  }
-}
-
-const checks = [];
-const record = (name, pass, detail) => {
-  checks.push({ name, pass, detail });
-  console.log(`${pass ? "PASS" : "FAIL"}  ${name}${detail ? `  — ${detail}` : ""}`);
-};
-
-const chrome = await launch({
-  chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu"],
-});
+const { record, finish } = reporter();
+const chrome = await launchChrome();
 
 try {
   const cdp = await CDP.attach(chrome.port, URL_UNDER_TEST);
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
   await cdp.send("Network.enable");
+
+  // Wait for navigation to settle before reading the DOM. "/" redirects to
+  // /home and then to /login when signed out, and querying mid-chain reads the
+  // document that is about to be replaced — which reports a missing manifest on
+  // a page that has one.
+  await cdp.evaluate(`
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) {
+      if (document.readyState === 'complete' &&
+          document.querySelector('link[rel=manifest]')) break;
+      await new Promise(r => setTimeout(r, 200));
+    }
+    return document.readyState;
+  `);
 
   // --- The manifest, against the installability criteria -----------------
   const manifest = await cdp.evaluate(`
@@ -166,20 +111,7 @@ try {
   });
   cdp.close();
 } finally {
-  try {
-    // chrome-launcher's temp-dir cleanup throws EPERM on Windows after the
-    // browser has already exited, and it throws SYNCHRONOUSLY — a .catch() on
-    // the returned promise never sees it. The checks are done by this point, so
-    // a cleanup failure must not fail the run.
-    await chrome.kill();
-  } catch (error) {
-    if (error?.code !== "EPERM") throw error;
-  }
+  await killChrome(chrome);
 }
 
-const failed = checks.filter((c) => !c.pass);
-console.log(`\n${checks.length - failed.length}/${checks.length} checks passed`);
-if (failed.length) {
-  console.log(`FAILED: ${failed.map((c) => c.name).join(", ")}`);
-  process.exit(1);
-}
+finish();

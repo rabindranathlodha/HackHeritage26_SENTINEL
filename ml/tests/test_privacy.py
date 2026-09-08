@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+
 import psycopg
 import pytest
 
@@ -237,3 +239,70 @@ def test_score_rows_cannot_outlive_the_person_they_describe(owner_conn):
     ).fetchone()
 
     assert constraint is not None, "Score still has no foreign key to User"
+
+
+# Sign-in credentials (PWA spec 3.2)
+#
+# The PWA needed a password to check, and the User model deliberately carries no
+# credential of any kind. Credentials therefore live in their own table with
+# their own role. These tests are the reason that separation is worth the extra
+# table: they would all fail if the hash were a column on User.
+
+
+@pytest.mark.parametrize(
+    "db_role",
+    ["sentinel_personnel", "sentinel_welfare_officer", "sentinel_commander",
+     "sentinel_admin", "sentinel_scoring"],
+)
+def test_no_application_role_can_read_a_password_hash(app_conn, cohort, db_role):
+    """A session must not be able to read the secret that authenticated it."""
+    act_as(app_conn, db_role, cohort.alerted)
+
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        app_conn.execute('SELECT * FROM "PersonnelCredential"').fetchall()
+
+
+@pytest.mark.parametrize("table", ["Score", "Assessment", "Alert", "HrSignal"])
+def test_the_auth_role_cannot_reach_welfare_content(app_conn, cohort, table):
+    """sentinel_auth answers one question. Its blast radius stays that small."""
+    act_as(app_conn, "sentinel_auth", cohort.alerted)
+
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        app_conn.execute(f'SELECT * FROM "{table}"').fetchall()
+
+
+def test_the_auth_role_cannot_issue_a_credential(app_conn, cohort):
+    """Verifying a password is a request-path action; issuing one is not.
+
+    sentinel_auth holds SELECT and an UPDATE limited to lastLoginAt. Without
+    this boundary, a flaw in the sign-in path could mint a working credential
+    for any account.
+    """
+    act_as(app_conn, "sentinel_auth", cohort.alerted)
+
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        app_conn.execute(
+            'INSERT INTO "PersonnelCredential" ("userId", "loginId", "passwordHash") '
+            "VALUES (%s, %s, %s)",
+            (cohort.alerted, f"forged-{cohort.alerted}", "scrypt$1$1$1$AA==$AA=="),
+        )
+
+
+def test_a_stored_credential_is_not_a_recoverable_password(owner_conn):
+    """Whatever is stored, it is not the password and cannot be turned back."""
+    row = owner_conn.execute(
+        'SELECT "passwordHash" FROM "PersonnelCredential" LIMIT 1'
+    ).fetchone()
+    if row is None:
+        pytest.skip("no credentials issued; run prisma/issue-credentials.ts")
+
+    stored = row[0]
+    algorithm, n, r, p, salt, digest = stored.split("$")
+    assert algorithm == "scrypt"
+    # A memory-hard cost, not a bare digest. These are the OWASP-shaped
+    # parameters the hashing module writes alongside every hash so an old one
+    # stays verifiable after the cost is raised.
+    assert int(n) >= 65536
+    assert int(r) >= 8 and int(p) >= 1
+    assert len(base64.b64decode(salt)) >= 16
+    assert len(base64.b64decode(digest)) >= 32

@@ -38,6 +38,7 @@ model User {
   biometricConsent Boolean      @default(false) // consent-gate for Model C
   alerts           Alert[]
   scores           Score[]
+  credential       PersonnelCredential?
 
   @@index([unitId])
   @@index([welfareOfficerId])
@@ -131,4 +132,20 @@ model AuditLog {
   at           DateTime @default(now())
 
   @@index([actorId, at])
+}
+
+// Sign-in secrets for the Personnel Companion PWA (PWA spec 3.2).
+//
+// Deliberately NOT columns on User: sentinel_personnel can read its own User
+// row, so a hash there would be readable by the session it authenticates. No
+// application role holds any privilege on this table — only sentinel_auth,
+// which exists to answer one question. Policies live in
+// prisma/migrations/*_personnel_credentials/migration.sql.
+model PersonnelCredential {
+  userId       String    @id
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loginId      String    @unique // opaque handle, never a name or service number
+  passwordHash String // scrypt$N$r$p$salt$hash — never plaintext, never reversible
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
 }
