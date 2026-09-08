@@ -16,7 +16,8 @@
     "verify:checkin": "node scripts/verify-checkin.mjs",
     "verify:offline": "node scripts/verify-offline.mjs",
     "ort:assets": "node scripts/copy-ort-assets.mjs",
-    "verify:ondevice": "node scripts/verify-ondevice.mjs"
+    "verify:ondevice": "node scripts/verify-ondevice.mjs",
+    "verify:voice": "node scripts/verify-voice.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",

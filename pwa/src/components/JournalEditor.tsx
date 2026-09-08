@@ -5,8 +5,10 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import type { Locale } from "@/i18n/locale";
 import { keepEntry, stashContribution } from "@/lib/journal";
 import { capability, scoreText } from "@/lib/onnx";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 
 // The journal (PWA spec 4.4).
 //
@@ -18,7 +20,7 @@ import { capability, scoreText } from "@/lib/onnx";
 // submit handler passes the words to scoreText(), which returns a number, and
 // the number is what gets stored. A test inspects every outgoing payload to
 // keep it that way.
-export function JournalEditor() {
+export function JournalEditor({ locale }: { locale: Locale }) {
   const t = useTranslations("journal");
   const router = useRouter();
   const reduceMotion = useReducedMotion();
@@ -73,6 +75,16 @@ export function JournalEditor() {
         }}
         rows={8}
         className="border-border bg-card focus-visible:ring-ring/50 min-h-48 rounded-2xl border p-4 text-base leading-relaxed outline-none focus-visible:ring-3"
+      />
+
+      {/* Speech goes into the same box, so the person can read and correct it
+          before anything is scored. It is not a separate, hidden pathway. */}
+      <VoiceRecorder
+        locale={locale}
+        onTranscript={(spoken) => {
+          setText(spoken);
+          setSaved(false);
+        }}
       />
 
       <label className="flex items-start gap-3 text-sm">

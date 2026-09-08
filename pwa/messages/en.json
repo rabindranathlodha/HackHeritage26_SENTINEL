@@ -45,14 +45,20 @@
     "prompt": "Anything you want to put into words. Nobody reads this but you.",
     "onDevice": "Your words stay on this phone. Only a single number leaves it.",
     "save": "Save",
-    "record": "Record a voice note",
+    "record": "Speak instead of typing",
     "stop": "Stop",
     "saved": "Saved on this phone",
     "keepOnPhone": "Keep these words on my phone",
     "keepHint": "Off by default. Nothing you write is ever sent, either way.",
     "processing": "Reading this on your phone…",
     "unavailable": "This phone cannot do the on-device reading. You can still write, and your words still stay here.",
-    "done": "Done"
+    "done": "Done",
+    "listening": "Listening…",
+    "voiceOnDevice": "Your voice is turned into words on this phone. The recording is never kept and never sent.",
+    "voiceUnsupported": "This phone cannot turn speech into words on its own, so voice is off. Typing works exactly the same.",
+    "voiceDownload": "Download the on-device language pack to use voice",
+    "voiceDownloading": "Getting the language pack ready…",
+    "voiceError": "The microphone stopped. Nothing was kept — you can try again or type."
   },
   "transparency": {
     "title": "What this app does with your information",

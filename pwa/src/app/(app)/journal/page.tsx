@@ -1,6 +1,7 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { JournalEditor } from "@/components/JournalEditor";
+import { DEFAULT_LOCALE, isLocale } from "@/i18n/locale";
 
 export async function generateMetadata() {
   const t = await getTranslations("journal");
@@ -9,6 +10,8 @@ export async function generateMetadata() {
 
 export default async function JournalPage() {
   const t = await getTranslations("journal");
+  const raw = await getLocale();
+  const locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-8 px-6 pb-16 pt-16">
@@ -22,7 +25,7 @@ export default async function JournalPage() {
         <p className="text-sm font-medium">{t("onDevice")}</p>
       </div>
 
-      <JournalEditor />
+      <JournalEditor locale={locale} />
     </main>
   );
 }
