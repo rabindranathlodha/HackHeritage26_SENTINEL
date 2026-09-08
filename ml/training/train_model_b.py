@@ -322,10 +322,14 @@ def main() -> None:
         "labels": {"0": "no_distress_signal", "1": "distress_signal"},
         "metrics": {"english": en_metrics, "hindi_back_translated": hi_metrics},
     }
-    with open(os.path.join(args.artifacts, args.meta), "w", encoding="utf-8") as fh:
+    meta_path = os.path.join(args.artifacts, args.meta)
+    with open(meta_path, "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)
 
-    print(f"\nsaved -> {output_dir}/ and {args.artifacts}/{META_FILE}")
+    # args.meta, not the module default. This printed META_FILE while writing to
+    # the requested path, so a run with --meta appeared to have overwritten the
+    # incumbent's metadata when it had not touched it.
+    print(f"\nsaved -> {output_dir}/ and {meta_path}")
 
 
 if __name__ == "__main__":

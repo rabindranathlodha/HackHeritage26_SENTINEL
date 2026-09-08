@@ -1692,3 +1692,56 @@ ways that override this default. Not legal advice, and the implementing Rules ar
 still settling. A real deployment needs privacy counsel and the force's own
 data-governance office. Naming the tension is the honest position; resolving it
 here would not be.
+
+---
+
+## IndicBERT v3 evaluated and rejected
+
+`ai4bharat/IndicBERT-v3-270M` — bidirectional Gemma-3, MIT-licensed, 23 languages
+— was proposed as a replacement for the Model B encoder. It was fine-tuned on the
+same corpus, with the same recipe, and measured against the incumbent on the same
+held-out rows. It lost, and on Hindi it did not merely lose.
+
+```
+                    v3        IndicBERTv2      paired 95% CI       verdict
+english           0.7591        0.7940      [-0.0638, -0.0061]     worse
+hindi             0.3243        0.7367      [-0.4633, -0.3535]     DEGENERATE
+```
+
+The Hindi figure is not a weak score, it is an absent model. v3 predicted
+`no_distress_signal` for **all 300** Hindi inputs, with a probability spread of
+**0.0019** — a near-constant output. On English its spread is 0.9994, so it
+learned English and has no discriminative signal on Hindi whatsoever. A macro-F1
+of 0.32 reads as "bad"; the prediction counts are what show it is broken.
+
+That distinction is now permanent. `training/compare_model_b.py` bootstraps the
+*paired* difference between two checkpoints on identical rows, and reports
+positive-prediction counts and probability spread alongside it, flagging a
+candidate as DEGENERATE before the F1 comparison is even considered. Two macro-F1
+numbers from separate runs are not a comparison, and a collapsed classifier
+produces a plausible-looking one.
+
+**The confound, stated rather than buried.** The recipe was matched to the
+incumbent's exactly — 2 epochs, lr 3e-5, half the layers frozen — so the
+comparison would isolate the encoder. But those hyperparameters were tuned for a
+278M BERT with 12 layers, and v3 is a 270M Gemma-3 with 18 layers, a 262k-token
+embedding table and a freshly initialised head. Two epochs over 2,051 examples is
+roughly 512 optimizer steps, which is very few for that. **This is a clean
+negative result for v3 under this recipe, not evidence that v3 is a worse
+encoder.** Displacing the incumbent would need a run tuned for v3's own
+architecture and, more importantly, the real Hindi evaluation set that has been
+the binding constraint on Model B throughout — 300 machine-translated posts
+cannot settle a question about natural Hindi.
+
+**Decision: keep `ai4bharat/IndicBERTv2-MLM-only`.** The v3 checkpoint and its
+metadata stay in `artifacts/` as the record; nothing in the serving path changed.
+
+### A log line that lied
+
+`train_model_b.py` printed `saved -> artifacts/<output>/ and artifacts/model_b_meta.json`
+using the module default constant, regardless of `--meta`. A run invoked with
+`--meta model_b_indicbert_v3_meta.json` therefore reported that it had written the
+incumbent's metadata file, which it had not touched. The file was verified intact
+before anything was changed. It now prints the path it actually wrote — a message
+that misreports a destructive-looking action invites someone to "restore" a file
+that was never damaged.

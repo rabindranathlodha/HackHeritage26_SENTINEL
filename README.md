@@ -444,5 +444,11 @@ pipeline can write scores without being able to read any.
   against a 0.85 bar, which is the narrowest of the three). This bounds the effect of the
   assumptions being wrong; it is not evidence they are right, and says nothing about whether
   the generator's *structure* resembles real data.
+- **IndicBERT v3 was tried and rejected.** `ai4bharat/IndicBERT-v3-270M` scored 0.7591
+  macro-F1 on English against the incumbent's 0.7940 (paired 95% CI [-0.064, -0.006]), and
+  collapsed on Hindi — one class for all 300 inputs, probability spread 0.0019. Under a
+  recipe matched to the incumbent's, which is a confound worth naming: those settings were
+  tuned for a 12-layer BERT, not an 18-layer Gemma-3. See `docs/BUILD_LOG.md`; re-check with
+  `training/compare_model_b.py`.
 - **Model B is English-trained.** Hindi performance is measured on machine translations, a
   lower bound that does not capture code-mixing.
