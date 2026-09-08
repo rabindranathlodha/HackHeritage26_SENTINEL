@@ -62,16 +62,22 @@
   },
   "transparency": {
     "title": "What this app does with your information",
+    "intro": "Written plainly, and kept accurate. Every statement here describes what this app actually does today.",
     "collectedHeading": "What is collected",
-    "collectedBody": "Your weekly check-in answers. If you write or speak a journal entry, it is processed on this phone and only a single number leaves it. A wellness signal from a wearable, but only if you turn it on.",
+    "collectedBody": "Your weekly check-in answers. If you write or speak, that is read on this phone and only a single number leaves it. Nothing else about what you wrote is sent.",
+    "collectedWearable": "The wellness signal is off unless you turn it on, and no wearable is connected to this version yet.",
     "onDeviceHeading": "What stays on your phone",
-    "onDeviceBody": "Your journal words and your voice. They are never sent anywhere and are never stored on a server.",
+    "onDeviceBody": "Your written words and your voice. They are never sent anywhere and are never held on a server. If you choose to keep an entry, it is kept only here, on this phone.",
     "teamHeading": "What your welfare team sees",
-    "teamBody": "Wellbeing trends for a group, never one person on their own. An individual notice reaches a welfare officer only when support may be needed, and it is a person who decides what happens next.",
+    "teamBody": "When a check-in suggests support might help, a welfare officer can open your individual record. They see it because someone may need to reach out, and a person decides what happens next.",
+    "teamAudit": "Every time someone opens your record, that is written down: who looked, and when.",
     "commanderHeading": "What your commander sees",
-    "commanderBody": "Group trends only. Your individual replies are not shown to your chain of command.",
+    "commanderBody": "Group patterns only, and only for groups large enough that no one person stands out. Your own answers are not shown to your chain of command.",
     "controlsHeading": "What you control",
-    "controlsBody": "You can turn the wellness signal off at any time and the app keeps working. Nothing in this app contacts anyone on your behalf."
+    "controlsBody": "You can turn the wellness signal off at any time and everything here keeps working. Turning it off stops it being used from then on.",
+    "controlsContact": "Nothing in this app contacts anyone on your behalf. It does not message your officer, your commander, or your family.",
+    "questionsHeading": "If something here is unclear",
+    "questionsBody": "Ask your welfare officer. You are entitled to know what is held about you."
   },
   "settings": {
     "title": "Settings",

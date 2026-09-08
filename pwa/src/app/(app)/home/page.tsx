@@ -60,6 +60,13 @@ export default async function HomePage() {
         </Link>
 
         <Link
+          href="/transparency"
+          className="border-border flex min-h-14 items-center justify-center rounded-xl border text-base font-medium"
+        >
+          {t("openTransparency")}
+        </Link>
+
+        <Link
           href="/settings"
           className="border-border flex min-h-14 items-center justify-center rounded-xl border text-base font-medium"
         >
