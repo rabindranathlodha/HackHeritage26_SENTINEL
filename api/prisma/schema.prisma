@@ -78,6 +78,9 @@ model Assessment {
   // sensitive row in the schema. Stored as AES-256-GCM (12-byte IV ‖ 16-byte
   // tag ‖ ciphertext); see api/src/lib/fieldCrypto.ts.
   responsesEnc Bytes
+  // Device-generated UUID identifying one submission across retries, so an
+  // offline check-in replayed on reconnect is recorded once (PWA spec 6).
+  clientSubmissionId String?
   // Derived NLP contribution ONLY — raw text never stored server-side
   // (on-device pre-processing)
   nlpContribution    Float? // 0-1, from on-device Model B

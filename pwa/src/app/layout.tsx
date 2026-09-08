@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
 
 import { ServiceWorker } from "@/components/ServiceWorker";
 
@@ -58,11 +58,17 @@ export default async function RootLayout({
   // lang has to follow the chosen locale, not sit hardcoded at "en" — screen
   // readers pick pronunciation from it, and an accessibility audit checks it.
   const locale = await getLocale();
+  // Passed explicitly so client components can call useTranslations. Without
+  // this they can read the locale but not the strings, and the only way to get
+  // copy to them is to pass formatted values as props — which cannot include a
+  // formatter function, because functions are not serializable across the
+  // server/client boundary.
+  const messages = await getMessages();
 
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} antialiased`}>
-        <NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
           <ServiceWorker>{children}</ServiceWorker>
         </NextIntlClientProvider>
       </body>

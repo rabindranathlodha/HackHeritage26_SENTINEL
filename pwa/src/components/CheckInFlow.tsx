@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { SCALE_MAX, SCALE_MIN } from "@/content/questionnaire";
+import { enqueue } from "@/lib/offlineQueue";
 import { responsesSchema } from "@/lib/schemas";
 
 type Labels = {
@@ -89,25 +90,57 @@ export function CheckInFlow({ questions, labels, locale }: Props) {
 
     setPending(true);
     setFailed(false);
+
+    const submission = {
+      responses: parsed.data,
+      language: locale as "en" | "hi",
+      // Stubbed at this step. 3.6 replaces it with on-device inference; the
+      // contract already carries the field so nothing changes but the value.
+      nlpContribution: null,
+      // Generated once, here, and reused by every retry of THIS submission.
+      // Generating it per attempt would defeat the whole point.
+      clientId: crypto.randomUUID(),
+    };
+
+    async function queueIt() {
+      await enqueue(submission);
+      router.replace("/check-in/done?queued=1");
+      router.refresh();
+    }
+
+    // Offline: do not attempt and do not fail. Queue it and thank them.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      await queueIt();
+      setPending(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/assessment", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          responses: parsed.data,
-          language: locale,
-          // Stubbed at this step. 3.6 replaces it with on-device inference; the
-          // contract already carries the field so nothing changes but the value.
-          nlpContribution: null,
-          // Idempotency, so a retry after a flaky connection cannot double-file.
-          clientId: crypto.randomUUID(),
-        }),
+        body: JSON.stringify(submission),
       });
-      if (!res.ok) throw new Error(`submit failed: ${res.status}`);
-      router.replace("/check-in/done");
-      router.refresh();
+
+      if (res.ok) {
+        router.replace("/check-in/done");
+        router.refresh();
+        return;
+      }
+
+      // A 4xx that is not a timeout or a rate limit will never succeed on
+      // replay — queueing it would hide a real problem behind silence.
+      const permanent =
+        res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429;
+      if (permanent) {
+        setFailed(true);
+        return;
+      }
+      await queueIt();
     } catch {
-      setFailed(true);
+      // The network went away mid-flight. The answers are not lost; they are
+      // in the outbox, and the person is told nothing alarming.
+      await queueIt();
     } finally {
       setPending(false);
     }

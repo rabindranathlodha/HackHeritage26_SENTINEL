@@ -46,7 +46,10 @@ const FORBIDDEN_FIELDS = [
 async function waitFor(cdp, expression, what, timeoutMs = 20000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (await cdp.evaluate(`return Boolean(${expression});`)) return true;
+    // `await` matters: an async expression would otherwise be wrapped as
+    // Boolean(Promise), which is ALWAYS true — a condition that can never
+    // fail is not a wait, and it reported a queue as drained when it was not.
+    if (await cdp.evaluate(`return Boolean(await (${expression}));`)) return true;
     await new Promise((r) => setTimeout(r, 150));
   }
   console.error(`  (timed out waiting for ${what})`);

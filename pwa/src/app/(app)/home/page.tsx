@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { auth, signOut } from "@/auth";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { SyncStatus } from "@/components/SyncStatus";
 import { getCheckInStatus } from "@/lib/api";
 
 export async function generateMetadata() {
@@ -37,6 +38,8 @@ export default async function HomePage() {
           {due ? t("supportive") : t("checkedIn")}
         </p>
       </div>
+
+      <SyncStatus />
 
       <div className="flex flex-col gap-3">
         {due && (

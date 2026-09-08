@@ -50,6 +50,14 @@ export type PipelineInput = {
   scoreB: number | null;
   signals?: PhysiologicalSignals;
   baseline?: PhysiologicalBaseline;
+  /**
+   * Device-generated UUID for this submission, reused across retries.
+   *
+   * Present for the companion app, absent for the demo route. When present the
+   * Assessment insert is conditional on it, and the Score insert is conditional
+   * on the Assessment insert — so a replayed submission scores nobody twice.
+   */
+  clientSubmissionId?: string | null;
 };
 
 export type FusionResult = {
@@ -65,6 +73,19 @@ export type PipelineResult = {
   fusion: FusionResult;
   physioUsed: boolean;
   escalation: { escalated: boolean; reasons: string[] } | null;
+  /** True when this submission had already been recorded and was ignored. */
+  duplicate: boolean;
+};
+
+// Returned when a submission is recognised as a replay. The caller answers the
+// device the same way it answered the first attempt; nothing here is surfaced.
+const DUPLICATE_FUSION: FusionResult = {
+  sentinel_score: 0,
+  band: "LOW",
+  confidence: { low: 0, high: 0 },
+  override_fired: false,
+  shap_categories: {},
+  disclaimer: "",
 };
 
 export class PipelineError extends Error {
@@ -102,6 +123,30 @@ export function validateResponses(responses: unknown): number[] {
 
 export async function runAssessment(input: PipelineInput): Promise<PipelineResult> {
   const { userId, responses, language, scoreB, signals, baseline } = input;
+  const clientSubmissionId = input.clientSubmissionId ?? null;
+
+  // Cheap pre-check so a replay does not spend an ML round trip. It is not the
+  // guarantee — the unique index is — but it means the common case (a retry
+  // seconds after a slow success) costs one indexed lookup instead of three
+  // model calls.
+  if (clientSubmissionId) {
+    const seen = await withRole("sentinel_personnel", userId, async (tx) => {
+      const rows = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "Assessment"
+        WHERE "userId" = ${userId} AND "clientSubmissionId" = ${clientSubmissionId}
+        LIMIT 1
+      `;
+      return rows[0] ?? null;
+    });
+    if (seen) {
+      return {
+        fusion: DUPLICATE_FUSION,
+        physioUsed: false,
+        escalation: null,
+        duplicate: true,
+      };
+    }
+  }
 
   // --- Consent gate. Read as the submitter, so RLS scopes it to their own row.
   const person = await withRole("sentinel_personnel", userId, async (tx) => {
@@ -156,14 +201,28 @@ export async function runAssessment(input: PipelineInput): Promise<PipelineResul
   // (spec 9.3) — plaintext answers never touch a column, a log, or a backup.
   const responsesEnc = encryptJson(responses);
 
-  await withRole("sentinel_personnel", userId, async (tx) => {
-    await tx.$executeRaw`
+  // ON CONFLICT DO NOTHING closes the race the pre-check cannot: two retries
+  // arriving together both pass the lookup, and the index decides which one
+  // wins. The loser inserts nothing and returns 0.
+  const inserted = await withRole("sentinel_personnel", userId, async (tx) => {
+    return tx.$executeRaw`
       INSERT INTO "Assessment" (id, "userId", "responsesEnc", "nlpContribution",
-                                language, "physioContribution")
+                                language, "physioContribution", "clientSubmissionId")
       VALUES (${`as-${crypto.randomUUID()}`}, ${userId}, ${responsesEnc},
-              ${scoreB}, ${language}, ${physio.score_c})
+              ${scoreB}, ${language}, ${physio.score_c}, ${clientSubmissionId})
+      -- The predicate is required to infer a PARTIAL unique index. Without it
+      -- Postgres cannot match the constraint and raises rather than skipping.
+      ON CONFLICT ("userId", "clientSubmissionId")
+        WHERE "clientSubmissionId" IS NOT NULL
+        DO NOTHING
     `;
   });
+
+  if (inserted === 0) {
+    // A concurrent retry won. Writing a Score now would attach a second score
+    // to a check-in that was only filed once.
+    return { fusion, physioUsed: physio.used, escalation: null, duplicate: true };
+  }
 
   await withRole("sentinel_scoring", null, async (tx) => {
     await tx.$executeRaw`
@@ -191,5 +250,5 @@ export async function runAssessment(input: PipelineInput): Promise<PipelineResul
     console.error("escalation failed; the score is still recorded", error);
   }
 
-  return { fusion, physioUsed: physio.used, escalation };
+  return { fusion, physioUsed: physio.used, escalation, duplicate: false };
 }

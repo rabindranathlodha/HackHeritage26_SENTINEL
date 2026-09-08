@@ -9,8 +9,17 @@ export async function generateMetadata() {
 // Spec 4.3: "compute nothing user-facing beyond a thank-you". No score, no
 // band, no interpretation of what was just submitted — the app tier does not
 // even send those to this app.
-export default async function CheckInDonePage() {
+//
+// The only variation is whether it went out now or is waiting in the outbox,
+// and both are phrased as success. A person with no signal has done nothing
+// wrong and should not be shown a warning for it.
+export default async function CheckInDonePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ queued?: string }>;
+}) {
   const t = await getTranslations("checkIn");
+  const { queued } = await searchParams;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-end gap-8 px-6 pb-16 pt-24">
@@ -19,7 +28,7 @@ export default async function CheckInDonePage() {
           {t("thanks")}
         </h1>
         <p className="text-muted-foreground text-base leading-relaxed">
-          {t("thanksBody")}
+          {queued === "1" ? t("queued") : t("thanksBody")}
         </p>
       </div>
 

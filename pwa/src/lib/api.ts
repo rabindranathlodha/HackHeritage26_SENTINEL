@@ -26,9 +26,13 @@ export type SubmitAssessment = {
   responses: number[];
   language: string;
   nlpContribution: number | null;
+  /** Reused across retries so a replayed queue item is recorded once. */
+  clientSubmissionId: string;
 };
 
-export async function submitAssessment(input: SubmitAssessment): Promise<void> {
+export async function submitAssessment(
+  input: SubmitAssessment,
+): Promise<{ duplicate: boolean }> {
   const res = await fetch(`${API_BASE_URL}/api/assessment`, {
     method: "POST",
     headers: internalHeaders(),
@@ -41,8 +45,10 @@ export async function submitAssessment(input: SubmitAssessment): Promise<void> {
   }
 
   // Parsed, not trusted. The contract says no score comes back; this is what
-  // makes that a guarantee on this side of the boundary too.
-  assessmentAckSchema.parse(await res.json());
+  // makes that a guarantee on this side of the boundary too — an unexpected
+  // score field would fail the parse rather than be forwarded.
+  const ack = assessmentAckSchema.parse(await res.json());
+  return { duplicate: ack.duplicate ?? false };
 }
 
 export async function getCheckInStatus(userId: string): Promise<CheckInStatus> {

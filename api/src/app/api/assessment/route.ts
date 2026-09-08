@@ -31,6 +31,8 @@ type CompanionBody = {
   responses?: number[];
   language?: string;
   nlpContribution?: number | null;
+  /** Device-generated UUID, reused across retries of the same submission. */
+  clientSubmissionId?: string;
   signals?: PhysiologicalSignals;
   baseline?: PhysiologicalBaseline;
 };
@@ -80,11 +82,12 @@ export async function POST(request: Request) {
   try {
     const responses = validateResponses(body.responses);
 
-    const { escalation } = await runAssessment({
+    const { escalation, duplicate } = await runAssessment({
       userId,
       responses,
       language,
       scoreB: nlpContribution ?? null,
+      clientSubmissionId: body.clientSubmissionId ?? null,
       signals,
       baseline,
     });
@@ -97,6 +100,9 @@ export async function POST(request: Request) {
       // Whether a human will look at this. Not a score, and not phrased as one:
       // the companion app does not surface this to the person either.
       review: { pending_review_raised: escalation?.escalated ?? false },
+      // A replay answers exactly as the first attempt did. The device must be
+      // able to retry safely without being told off for it.
+      duplicate,
     });
   } catch (error) {
     if (error instanceof PipelineError) {

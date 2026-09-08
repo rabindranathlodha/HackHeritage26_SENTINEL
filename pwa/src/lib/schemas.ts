@@ -33,6 +33,9 @@ export type CheckInSubmission = z.infer<typeof checkInSubmissionSchema>;
 export const assessmentAckSchema = z.object({
   ok: z.literal(true),
   recorded_at: z.string(),
+  // Present when the app tier recognised a replay. Not an error: the queue
+  // treats it exactly like a first success and drops the item.
+  duplicate: z.boolean().optional(),
 });
 
 export const checkInStatusSchema = z.object({

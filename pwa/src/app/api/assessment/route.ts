@@ -34,18 +34,22 @@ export async function POST(request: Request) {
     );
   }
 
+  let duplicate = false;
   try {
-    await submitAssessment({
+    ({ duplicate } = await submitAssessment({
       userId,
       responses: parsed.data.responses,
       language: parsed.data.language,
       nlpContribution: parsed.data.nlpContribution,
-    });
+      clientSubmissionId: parsed.data.clientId,
+    }));
   } catch (error) {
     console.error("assessment submission failed", error);
     return NextResponse.json({ error: "upstream_unavailable" }, { status: 502 });
   }
 
   // Nothing but an acknowledgement. No score exists on this side to leak.
-  return NextResponse.json({ ok: true });
+  // `duplicate` tells the outbox a replay landed on an already-recorded
+  // submission, which is a success for its purposes, not an error.
+  return NextResponse.json({ ok: true, duplicate });
 }
