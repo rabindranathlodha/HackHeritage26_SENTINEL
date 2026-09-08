@@ -35,3 +35,7 @@ out/
 # OS
 Thumbs.db
 .DS_Store
+
+# pwa
+pwa/node_modules
+pwa/.next
