@@ -42,6 +42,69 @@ class GenConfig:
     end_date: date = date(2026, 9, 1)
 
 
+@dataclass(frozen=True)
+class Calibration:
+    """The numbers marked [ASSUMPTION] in this file's provenance note.
+
+    They are plausible working values for CAPF operational patterns, not figures
+    checked against the primary sources the header cites. Collecting them here
+    does not make them verified — it makes them *nameable*, so that
+    `training/sensitivity.py` can perturb them and show which conclusions depend
+    on them and which do not. Defaults reproduce the dataset the project was
+    built on, byte for byte, at the same seed.
+    """
+
+    # Structural priors: who is where, for how long, under what conditions.
+    hazard_share_archetype: float = 0.85
+    hazard_share_baseline: float = 0.28
+    deployment_shape: float = 2.2
+    deployment_scale: float = 170.0
+    deployment_hazard_shift: float = 220.0
+    home_separation_shape: float = 1.6
+    home_separation_scale: float = 110.0
+    home_separation_irregular_shift: float = 200.0
+    tenure_shape: float = 3.0
+    tenure_scale: float = 3.4
+    transfers_lambda_irregular: float = 1.9
+    transfers_lambda_baseline: float = 0.7
+    leave_request_alpha: float = 2.0
+    leave_request_beta: float = 90.0
+    leave_approval_alpha: float = 6.0
+    leave_approval_beta: float = 2.0
+    leave_denial_penalty: float = 0.45
+    shift_std_shape: float = 2.6
+    shift_std_scale: float = 0.42
+    night_ratio_alpha: float = 2.4
+    night_ratio_beta: float = 5.2
+    night_ratio_irregular_shift: float = 0.14
+    rest_day_alpha: float = 3.0
+    rest_day_beta: float = 12.0
+    training_load_sd: float = 0.16
+    incident_p_base: float = 0.010
+    incident_p_hazard: float = 0.030
+    incident_p_remote: float = 0.012
+
+    # Latent-risk structure: how much each stressor contributes, and how much of
+    # the signal lives in conjunctions rather than in main effects.
+    w_deploy: float = 0.10
+    w_home: float = 0.09
+    w_denied: float = 0.12
+    w_irregular: float = 0.11
+    w_night: float = 0.06
+    w_consecutive: float = 0.09
+    w_transfers: float = 0.05
+    w_training: float = 0.04
+    w_recency: float = 0.08
+    w_hazard: float = 0.07
+    combo_hazard_denial: float = 2.6
+    combo_duty_separation: float = 2.4
+    combo_chronic_exposure: float = 1.8
+    noise_sd: float = 0.55
+
+
+DEFAULT_CALIBRATION = Calibration()
+
+
 # Person-level generation
 
 
@@ -51,7 +114,8 @@ def _standardise(x: np.ndarray) -> np.ndarray:
     return (x - x.mean()) / sd if sd > 1e-9 else np.zeros_like(x)
 
 
-def generate_population(cfg: GenConfig, rng: np.random.Generator) -> pd.DataFrame:
+def generate_population(cfg: GenConfig, rng: np.random.Generator,
+                        cal: Calibration = DEFAULT_CALIBRATION) -> pd.DataFrame:
     """Sample structural attributes, then derive a latent risk and a band."""
     faker = Faker()
     Faker.seed(cfg.seed)
@@ -73,51 +137,64 @@ def generate_population(cfg: GenConfig, rng: np.random.Generator) -> pd.DataFram
     is_irreg_sc = scenario == SCENARIO_IRREGULAR_DUTY
 
     # C4: remote/hazardous share, raised for the first archetype.
-    p_hazard = np.where(is_hazard_sc, 0.85, 0.28)
+    p_hazard = np.where(is_hazard_sc, cal.hazard_share_archetype,
+                        cal.hazard_share_baseline)
     remote_hazardous = rng.random(n) < p_hazard
 
     # C3: tenure in the current posting at the START of the observation window.
     deployment_days_start = np.clip(
-        rng.gamma(shape=2.2, scale=170, size=n)
-        + np.where(is_hazard_sc, 220, 0),
+        rng.gamma(shape=cal.deployment_shape, scale=cal.deployment_scale, size=n)
+        + np.where(is_hazard_sc, cal.deployment_hazard_shift, 0),
         20, 1500,
     ).astype(int)
 
     # C2: separation from home posting. Always >= deployment tenure.
     days_since_home_start = np.clip(
-        deployment_days_start + rng.gamma(shape=1.6, scale=110, size=n)
-        + np.where(is_irreg_sc, 200, 0),
+        deployment_days_start
+        + rng.gamma(shape=cal.home_separation_shape,
+                    scale=cal.home_separation_scale, size=n)
+        + np.where(is_irreg_sc, cal.home_separation_irregular_shift, 0),
         30, 2200,
     ).astype(int)
 
-    tenure_years = np.clip(rng.gamma(shape=3.0, scale=3.4, size=n), 0.5, 32).round(1)
+    tenure_years = np.clip(
+        rng.gamma(shape=cal.tenure_shape, scale=cal.tenure_scale, size=n), 0.5, 32
+    ).round(1)
 
     transfers_12mo = rng.poisson(
-        lam=np.where(is_irreg_sc, 1.9, 0.7), size=n
+        lam=np.where(is_irreg_sc, cal.transfers_lambda_irregular,
+                     cal.transfers_lambda_baseline), size=n
     ).clip(0, 6)
 
     # C1: leave behaviour. Approval pressure is the discriminating part — the
     # first archetype requests at a normal rate but is denied far more often.
-    leave_request_rate = rng.beta(2.0, 90.0, size=n)  # per-day probability
+    leave_request_rate = rng.beta(cal.leave_request_alpha, cal.leave_request_beta,
+                                  size=n)  # per-day probability
     leave_approval_p = np.clip(
-        rng.beta(6.0, 2.0, size=n) - np.where(is_hazard_sc, 0.45, 0.0),
+        rng.beta(cal.leave_approval_alpha, cal.leave_approval_beta, size=n)
+        - np.where(is_hazard_sc, cal.leave_denial_penalty, 0.0),
         0.05, 0.98,
     )
 
     # Duty pattern. Irregularity drifts upward over the window for archetype 2.
-    shift_std_base = np.clip(rng.gamma(2.6, 0.42, size=n), 0.1, 6.0)
+    shift_std_base = np.clip(
+        rng.gamma(cal.shift_std_shape, cal.shift_std_scale, size=n), 0.1, 6.0
+    )
     shift_std_drift = np.where(is_irreg_sc, rng.uniform(0.006, 0.016, size=n),
                                rng.normal(0.0, 0.0018, size=n))
-    night_ratio_base = np.clip(rng.beta(2.4, 5.2, size=n)
-                               + np.where(is_irreg_sc, 0.14, 0.0), 0.0, 0.85)
-    rest_day_p = np.clip(rng.beta(3.0, 12.0, size=n)
+    night_ratio_base = np.clip(
+        rng.beta(cal.night_ratio_alpha, cal.night_ratio_beta, size=n)
+        + np.where(is_irreg_sc, cal.night_ratio_irregular_shift, 0.0), 0.0, 0.85)
+    rest_day_p = np.clip(rng.beta(cal.rest_day_alpha, cal.rest_day_beta, size=n)
                          - np.where(is_irreg_sc, 0.04, 0.0), 0.005, 0.4)
-    training_load_base = rng.normal(1.0, 0.16, size=n).clip(0.35, 1.9)
+    training_load_base = rng.normal(1.0, cal.training_load_sd, size=n).clip(0.35, 1.9)
 
     # Incident recency. Recorded as recency ONLY — the generator never emits any
     # event detail, matching the HrSignal contract.
     p_incident = np.clip(
-        0.010 + np.where(is_hazard_sc, 0.030, 0.0) + 0.012 * remote_hazardous,
+        cal.incident_p_base
+        + np.where(is_hazard_sc, cal.incident_p_hazard, 0.0)
+        + cal.incident_p_remote * remote_hazardous,
         0.0, 0.09,
     )
 
@@ -146,7 +223,8 @@ def generate_population(cfg: GenConfig, rng: np.random.Generator) -> pd.DataFram
 
 
 def assign_latent_risk(
-    persons: pd.DataFrame, daily: pd.DataFrame, rng: np.random.Generator
+    persons: pd.DataFrame, daily: pd.DataFrame, rng: np.random.Generator,
+    cal: Calibration = DEFAULT_CALIBRATION,
 ) -> pd.DataFrame:
     """Compute a latent risk from observed window summaries, then cut bands.
 
@@ -184,16 +262,16 @@ def assign_latent_risk(
     # A weak additive background: each stressor carries a little signal on its
     # own, which is realistic and keeps single-feature AUC modest.
     additive = (
-        0.10 * z_deploy
-        + 0.09 * z_home
-        + 0.12 * z_denied
-        + 0.11 * z_irreg
-        + 0.06 * z_night
-        + 0.09 * z_consec
-        + 0.05 * z_transfers
-        + 0.04 * z_training
-        + 0.08 * z_recency
-        + 0.07 * hazard
+        cal.w_deploy * z_deploy
+        + cal.w_home * z_home
+        + cal.w_denied * z_denied
+        + cal.w_irregular * z_irreg
+        + cal.w_night * z_night
+        + cal.w_consecutive * z_consec
+        + cal.w_transfers * z_transfers
+        + cal.w_training * z_training
+        + cal.w_recency * z_recency
+        + cal.w_hazard * hazard
     )
 
     # Soft AND-gates rather than products of z-scores: a product is mostly
@@ -202,14 +280,17 @@ def assign_latent_risk(
     def gate(z: np.ndarray, thr: float = 0.5, sharp: float = 3.0) -> np.ndarray:
         return 1.0 / (1.0 + np.exp(-sharp * (z - thr)))
 
-    combo_hazard_denial = 2.6 * gate(z_denied) * hazard * gate(z_recency)
-    combo_duty_separation = 2.4 * gate(z_irreg) * gate(z_consec) * gate(z_home)
-    combo_chronic_exposure = 1.8 * gate(z_deploy, thr=0.7) * gate(z_night)
+    combo_hazard_denial = (
+        cal.combo_hazard_denial * gate(z_denied) * hazard * gate(z_recency))
+    combo_duty_separation = (
+        cal.combo_duty_separation * gate(z_irreg) * gate(z_consec) * gate(z_home))
+    combo_chronic_exposure = (
+        cal.combo_chronic_exposure * gate(z_deploy, thr=0.7) * gate(z_night))
 
     # Noise scale, chosen by sweep (asserted in tests/test_data_gen.py): 0.45
     # gives interaction lift +0.041 but AUC 0.974, 0.75 gives +0.019. 0.55 keeps
     # no single feature near-diagnostic and the tree's edge over linear real.
-    noise = rng.normal(0.0, 0.55, size=len(f))
+    noise = rng.normal(0.0, cal.noise_sd, size=len(f))
     latent = (
         additive
         + combo_hazard_denial

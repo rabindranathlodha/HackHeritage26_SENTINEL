@@ -183,6 +183,17 @@ docker compose exec ml python -m training.evaluate --folds 5
 Out-of-fold over everyone, with bootstrap confidence intervals on every cohort rate. Writes
 `pr_curve.png` and `evaluation_report.json`.
 
+### Calibration sensitivity
+
+```bash
+docker compose exec ml python -m training.sensitivity --draws 12
+```
+
+Perturbs every `[ASSUMPTION]` constant by ±25% at once and re-runs the whole pipeline per
+draw, to show which conclusions depend on the unverified calibration. Offline analysis, not
+part of CI: 13 full regenerate-and-retrain cycles take ~40 minutes. Writes
+`sensitivity_report.json`.
+
 ### Policy corpus
 
 ```bash
@@ -417,7 +428,14 @@ pipeline can write scores without being able to read any.
   device". See `training/distil_model_b.py` and `docs/BUILD_LOG.md`.
 - **The policy corpus is generic workplace guidance**, not CAPF policy. MHA Annual Reports
   were evaluated and rejected as reporting rather than guidance documents.
-- **Synthetic calibration is unverified** — plausible working ranges marked `[ASSUMPTION]`,
-  not figures checked against the cited sources.
+- **Synthetic calibration is unverified, but now bounded.** The ranges are still plausible
+  working values marked `[ASSUMPTION]`, not figures checked against the cited sources.
+  `training/sensitivity.py` perturbs all ~40 constants at once by ±25% and re-runs the whole
+  pipeline 12 times: the model still ranks usefully (worst ROC-AUC 0.9252), a tree still beats
+  a linear baseline (by 0.017–0.065 — justified, but a scaled logistic regression reaches
+  0.90–0.94 on the same features), and no single feature becomes diagnostic (worst 0.8364
+  against a 0.85 bar, which is the narrowest of the three). This bounds the effect of the
+  assumptions being wrong; it is not evidence they are right, and says nothing about whether
+  the generator's *structure* resembles real data.
 - **Model B is English-trained.** Hindi performance is measured on machine translations, a
   lower bound that does not capture code-mixing.

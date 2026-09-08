@@ -1574,3 +1574,64 @@ immediately after scoring"*.
 The gate is covered by `tests/test_distillation_gate.py`, including a test carrying the
 measured numbers, so the negative result is executable rather than a paragraph someone has
 to find.
+
+---
+
+## Sensitivity of the conclusions to the unverified calibration
+
+The generator's distributional constants are marked `[ASSUMPTION]`: plausible working values,
+not figures checked against the sources the file header cites. Verifying them needs documents
+this project does not have. What can be done is to measure how far the conclusions move when
+the assumptions are wrong, which turns *unverified* into *unverified, and bounded by this much*.
+
+They could not be varied at all before this, being ~40 literals inside two function bodies.
+They are now a `Calibration` dataclass. The refactor is inert, and that was checked rather than
+assumed: regenerating at the default seed reproduces the committed frames byte for byte —
+`synthetic_snapshot` (540,000 rows), `synthetic_persons` and `synthetic_physio` all
+`DataFrame.equals` the originals.
+
+Each draw scales **every** constant by an independent `U(0.75, 1.25)` and re-runs the whole
+pipeline: population, features through the shared module, out-of-fold Model A, re-measure.
+One-at-a-time would understate the risk — the worry is not one wrong number, it is a
+calibration that is off as a whole. Independent factors rather than one shared factor, because
+the band cuts are quantiles and a uniform rescale would be absorbed by them, reporting far more
+stability than the design has earned.
+
+```
+ draw     auc  linear  tree-lin  best-1f  macro-F1    miss
+       0.9444  0.9150    0.0294   0.7904    0.5906  0.4533   <- baseline
+    0  0.9655  0.9095    0.0560   0.8072    0.5572  0.4133
+    3  0.9253  0.9084    0.0169   0.8080    0.4891  0.5133   <- thinnest tree margin
+    4  0.9707  0.9326    0.0381   0.8364    0.5951  0.3767   <- closest to a diagnostic feature
+   10  0.9319  0.9070    0.0249   0.7873    0.4996  0.5100
+        (12 draws; full table in artifacts/sensitivity_report.json)
+```
+
+**All three conclusions hold in all twelve draws. Two of them hold narrowly, and that is the
+finding worth carrying forward.**
+
+* **The model ranks usefully** — worst draw 0.9252 against a 0.85 bar. Comfortable; this one is
+  not in doubt.
+* **A tree beats a linear model** — holds every time, but by 0.0169 to 0.0647 ROC-AUC. The
+  honest reading is that XGBoost is *justified but not vindicated*: a scaled logistic regression
+  reaches 0.90–0.94 on the same features. The stronger argument for the tree is category-level
+  SHAP attribution, which spec 7.1 requires and a linear model does not provide as directly —
+  not a large accuracy edge, because there is not one.
+* **No single feature is near-diagnostic** — the weakest of the three. Worst draw reaches
+  **0.8364** against a 0.85 bar, 0.0014 of headroom in ROC-AUC terms. Under some plausible
+  calibrations one column comes close to carrying the task alone. This is a property of the
+  synthetic data, not of the model, and it is the assumption most worth checking against a
+  primary source before anyone claims the task is genuinely multivariate.
+
+**What this does not show.** It bounds the effect of the constants being wrong. It is not
+evidence that they are right, and it says nothing about whether the generator's *structure* —
+which stressors interact, and how — resembles real CAPF data. A well-behaved sweep over a
+mis-specified structure is still a mis-specified structure.
+
+**One correction made while reading the output.** The sweep's Model A is a bare XGBoost fit with
+no isotonic calibrator and no top-band trigger, so it can be retrained thirteen times in a run.
+Its metrics are therefore not the shipped model's, and one of them was originally named
+`priority_alert_rate` — the same name `evaluate.py` uses for a stricter quantity (people
+predicted into the PRIORITY band, not merely flagged). Two different numbers under one name
+invites exactly the wrong comparison; it is now `true_priority_flagged_rate`, and the report
+carries a `not_the_shipped_pipeline` note. A test asserts the old name cannot reappear in it.
