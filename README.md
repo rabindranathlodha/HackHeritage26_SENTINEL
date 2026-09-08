@@ -411,6 +411,13 @@ pipeline can write scores without being able to read any.
 
 ## Known limits
 
+- **Withdrawal of consent does not yet erase history, and the policy says it must.**
+  `docs/DATA_RETENTION.md` (spec §9.4) sets erasure within 72 hours of withdrawal as the
+  default, with narrow logged carve-outs, flagged `<<requires privacy counsel review>>`.
+  No code implements it because there is nothing to erase: `_physio_signals` is synthetic
+  and training-only, and in production the raw signal never lands server-side. The duty
+  attaches to a deployment that collects real wearable data.
+
 - **About half of elevated-risk people are missed** (miss rate 0.49); 64.4% of the
   highest-risk band is surfaced. Detection is tunable — see `docs/DEPLOYMENT_ECONOMICS.html`
   for the workload/detection curve.

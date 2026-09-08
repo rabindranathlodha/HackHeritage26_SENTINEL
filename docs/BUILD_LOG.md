@@ -1635,3 +1635,60 @@ Its metrics are therefore not the shipped model's, and one of them was originall
 predicted into the PRIORITY band, not merely flagged). Two different numbers under one name
 invites exactly the wrong comparison; it is now `true_priority_flagged_rate`, and the report
 carries a `not_the_shipped_pipeline` note. A test asserts the old name cannot reappear in it.
+
+---
+
+## Retention on withdrawal — a default corrected before it shipped
+
+Step 3.8 made consent reversible and left an open question in the report: when
+someone withdraws, what happens to physiological data already collected? The
+answer the code implied was *withdrawal stops future use, prior rows stay* —
+which is simply what falls out of flipping a boolean.
+
+That default was challenged and does not survive scrutiny. Under the DPDP Act
+2023 retention is tied to the purpose consented for, and §8 carries an
+erasure-on-withdrawal duty. "We stopped using it but kept it" is not a middle
+ground; it is holding data with no remaining lawful basis.
+
+The product argument runs the same way and is arguably sharper. Physiological
+history belonging to a CAPF constable, retained after they revoked consent,
+inside a system connected however indirectly to their chain of command, is
+exactly the surveillance fear this design exists to defuse. If it becomes known
+that turning the signal off deletes nothing, adoption collapses among the
+constabulary — the majority of the force, and the group least inclined to trust
+a system tied to their command.
+
+**The policy is now recorded** as spec §9.4 and `docs/DATA_RETENTION.md`, flagged
+`<<requires privacy counsel review>>`:
+
+* Raw physiological rows are **erased within 72 hours** of withdrawal, not
+  flagged. Model C stops contributing immediately — already structural, since
+  the pipeline reads consent from the stored flag and never from a request body.
+* A `physioContribution` already fused into a past `Score` is handled separately
+  and openly: the Score is kept as welfare-audit history, severed from any raw
+  source, and Model C never contributes again without fresh consent. A fused
+  value cannot be cleanly unwound; the compromise is named rather than hidden.
+* Live-safety retention during an active alert review is a **named, logged,
+  time-boxed** exception, never the default.
+* The erasure is itself written to the audit trail. An erasure nobody can
+  evidence is indistinguishable from one that never happened.
+
+**No code changed, and that is the correct outcome.** `_physio_signals` is
+synthetic and training-only, absent from the Prisma schema, and in production the
+raw signal never lands server-side at all — so there is no raw physiological
+history in this system to erase. The erasure duty attaches to a deployment that
+collects real wearable data. Writing code to satisfy a policy that has nothing to
+act on would have been theatre.
+
+**One constraint this places on step 3.9:** the transparency screen must not
+promise erasure the running system does not perform. It may say the signal is off
+by default, can be turned off at any time, and that turning it off stops it being
+used. It may not claim deletion of history until a deployment implements the
+policy above.
+
+**What remains unresolved, and is above an engineering decision:** service-record
+retention rules and possible national-security carve-outs may compel retention in
+ways that override this default. Not legal advice, and the implementing Rules are
+still settling. A real deployment needs privacy counsel and the force's own
+data-governance office. Naming the tension is the honest position; resolving it
+here would not be.
