@@ -45,6 +45,9 @@ services:
       SENTINEL_APP_DATABASE_URL: postgresql://sentinel_app:${SENTINEL_APP_PASSWORD}@db:5432/${POSTGRES_DB:-sentinel}
       REDIS_URL: redis://redis:6379
       K_ANONYMITY_THRESHOLD: ${K_ANONYMITY_THRESHOLD:-10}
+      # Only needed to download a gated base model (IndicBERT v3 is gated behind
+      # an acceptance form). Everything the project ships trains without it.
+      HF_TOKEN: ${HF_TOKEN:-}
     ports:
       - "8000:8000"
     volumes:

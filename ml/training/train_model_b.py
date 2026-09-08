@@ -95,6 +95,54 @@ def back_translate(texts: list[str], batch_size: int = 16) -> list[str]:
     return out
 
 
+def encoder_layers(base):
+    """The list of transformer blocks, across the naming conventions in use.
+
+    BERT-family models put them at `encoder.layer`; the decoder-derived encoders
+    (Gemma-3, which IndicBERT v3 is built on) use `layers`.
+    """
+    for path in (("encoder", "layer"), ("layers",), ("encoder", "layers"),
+                 ("model", "layers"), ("transformer", "layer")):
+        node = base
+        for attribute in path:
+            node = getattr(node, attribute, None)
+            if node is None:
+                break
+        else:
+            return node
+    raise RuntimeError(
+        f"cannot locate the encoder layers of {type(base).__name__}. Refusing to "
+        "continue: freezing would silently do nothing and the run would look fine."
+    )
+
+
+def freeze_lower_layers(model, n_layers: int) -> int:
+    """Freeze the embeddings and the bottom n encoder blocks. Returns the count.
+
+    Resolves the modules rather than matching a name prefix. The prefix version
+    only worked for BertModel, and on any other family it froze nothing without
+    saying so — a failure that shows up much later as a model that has forgotten
+    the languages it was chosen for.
+    """
+    base = model.base_model
+    embeddings = getattr(base, "embeddings", None)
+    if embeddings is None:
+        embeddings = base.get_input_embeddings()
+
+    frozen = 0
+    for param in embeddings.parameters():
+        param.requires_grad = False
+        frozen += param.numel()
+    for layer in encoder_layers(base)[:n_layers]:
+        for param in layer.parameters():
+            param.requires_grad = False
+            frozen += param.numel()
+
+    if frozen == 0:
+        raise RuntimeError("freezing selected no parameters; refusing to train")
+    return frozen
+
+
 def evaluate_split(trainer, tokenizer, texts, labels, max_length, label: str) -> dict:
     encodings = tokenizer(list(texts), truncation=True, padding="max_length",
                           max_length=max_length, return_tensors="pt")
@@ -158,16 +206,7 @@ def main() -> None:
     # embedding table alone is ~151M parameters (197k vocab); leaving it frozen
     # cuts the backward pass dramatically and costs little, since the multilingual
     # representation is what we want to keep intact.
-    frozen = 0
-    encoder_prefix = "bert"  # both MuRIL and IndicBERTv2 are BertModel-based
-    for name, param in model.named_parameters():
-        if name.startswith(f"{encoder_prefix}.embeddings"):
-            param.requires_grad = False
-            frozen += param.numel()
-        for layer in range(args.freeze_bottom):
-            if name.startswith(f"{encoder_prefix}.encoder.layer.{layer}."):
-                param.requires_grad = False
-                frozen += param.numel()
+    frozen = freeze_lower_layers(model, args.freeze_bottom)
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"parameters: {total:,} total, {trainable:,} trainable "

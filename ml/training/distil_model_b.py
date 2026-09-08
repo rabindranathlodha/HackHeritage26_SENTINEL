@@ -35,6 +35,7 @@ from training.train_model_b import (
     back_translate,
     evaluate_split,
     fetch_dreaddit,
+    freeze_lower_layers,
 )
 
 TEACHER_DIR = "model_b_pruned"
@@ -97,7 +98,18 @@ class DistillationTrainer(Trainer):
 
 
 def build_student(teacher, keep_layers: list[int]):
-    """A shallower copy of the teacher, initialised from the layers it keeps."""
+    """A shallower copy of the teacher, initialised from the layers it keeps.
+
+    BERT-family only. Copying blocks between architectures is not a matter of
+    renaming attributes, so this says so rather than failing on an attribute
+    lookup halfway through building a model.
+    """
+    if teacher.base_model_prefix != "bert":
+        raise RuntimeError(
+            f"build_student supports BertModel-based encoders; got "
+            f"{type(teacher.base_model).__name__}. A Gemma-3-derived encoder "
+            "(IndicBERT v3) needs its own layer-copying path."
+        )
     config = AutoConfig.from_pretrained(teacher.config._name_or_path)
     config.num_hidden_layers = len(keep_layers)
     config.num_labels = teacher.config.num_labels
@@ -237,11 +249,7 @@ def main() -> None:
     # macro-F1 fell from 0.7367 to 0.4232 while English fell only 0.08: the
     # student had been asked to fit English and did exactly that. The layers
     # frozen here are the ones the teacher also never updated.
-    for param in student.bert.embeddings.parameters():
-        param.requires_grad = False
-    for position in range(args.freeze_bottom):
-        for param in student.bert.encoder.layer[position].parameters():
-            param.requires_grad = False
+    freeze_lower_layers(student, args.freeze_bottom)
     trainable = sum(p.numel() for p in student.parameters() if p.requires_grad)
     print(f"trainable: {trainable:,} "
           f"(frozen: embeddings + bottom {args.freeze_bottom} of {args.layers} layers)")
