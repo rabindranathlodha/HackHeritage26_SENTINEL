@@ -23,6 +23,9 @@ const eslintConfig = [
       "public/sw.js",
       "public/sw*.js",
       "public/swe-worker*.js",
+      // onnxruntime-web's own distribution, copied in by `npm run ort:assets`.
+      // Not source: linting it reports on Microsoft's minified bundles.
+      "public/ort/**",
     ],
   },
 ];

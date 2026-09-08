@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { SCALE_MAX, SCALE_MIN } from "@/content/questionnaire";
+import { takeContribution } from "@/lib/journal";
 import { enqueue } from "@/lib/offlineQueue";
 import { responsesSchema } from "@/lib/schemas";
 
@@ -91,12 +92,15 @@ export function CheckInFlow({ questions, labels, locale }: Props) {
     setPending(true);
     setFailed(false);
 
+    // The number the journal produced on this device, if there is one. Read
+    // and cleared here, so a contribution belongs to exactly one check-in.
+    // Null is normal: no journal entry, or a device that cannot run the model.
+    const nlpContribution = await takeContribution();
+
     const submission = {
       responses: parsed.data,
       language: locale as "en" | "hi",
-      // Stubbed at this step. 3.6 replaces it with on-device inference; the
-      // contract already carries the field so nothing changes but the value.
-      nlpContribution: null,
+      nlpContribution,
       // Generated once, here, and reused by every retry of THIS submission.
       // Generating it per attempt would defeat the whole point.
       clientId: crypto.randomUUID(),

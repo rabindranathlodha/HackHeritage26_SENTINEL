@@ -1,5 +1,4 @@
-import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-
+import { OUTBOX as STORE, db, type QueuedSubmission } from "@/lib/db";
 import type { CheckInSubmission } from "@/lib/schemas";
 
 // The offline queue (PWA spec 6).
@@ -18,38 +17,7 @@ import type { CheckInSubmission } from "@/lib/schemas";
 //   pressed the button, not one generated per attempt, so the app tier can
 //   recognise a replay of the same check-in.
 
-const DB_NAME = "sentinel-companion";
-const DB_VERSION = 1;
-const STORE = "outbox";
-
-export type QueuedSubmission = CheckInSubmission & {
-  /** When the person pressed the button, not when it was sent. */
-  queuedAt: number;
-  attempts: number;
-  lastError?: string;
-};
-
-interface CompanionDB extends DBSchema {
-  [STORE]: {
-    key: string;
-    value: QueuedSubmission;
-    indexes: { queuedAt: number };
-  };
-}
-
-let dbPromise: Promise<IDBPDatabase<CompanionDB>> | null = null;
-
-function db(): Promise<IDBPDatabase<CompanionDB>> {
-  dbPromise ??= openDB<CompanionDB>(DB_NAME, DB_VERSION, {
-    upgrade(database) {
-      // Keyed by the submission's own client id, so enqueueing the same
-      // submission twice replaces rather than duplicates it.
-      const store = database.createObjectStore(STORE, { keyPath: "clientId" });
-      store.createIndex("queuedAt", "queuedAt");
-    },
-  });
-  return dbPromise;
-}
+export type { QueuedSubmission };
 
 /** Adds a submission to the outbox. Safe to call with an id already present. */
 export async function enqueue(submission: CheckInSubmission): Promise<void> {

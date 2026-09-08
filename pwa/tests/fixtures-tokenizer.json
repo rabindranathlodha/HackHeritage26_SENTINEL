@@ -1,0 +1,290 @@
+[
+ {
+  "text": "I cannot sleep at all any more.",
+  "ids": [
+   1,
+   45,
+   1577,
+   3029,
+   361,
+   447,
+   600,
+   658,
+   18,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "I",
+   "cannot",
+   "sleep",
+   "at",
+   "all",
+   "any",
+   "more",
+   ".",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "The duty roster came out this morning and it was fine.",
+  "ids": [
+   1,
+   279,
+   3481,
+   708,
+   4319,
+   1194,
+   527,
+   387,
+   2017,
+   267,
+   356,
+   327,
+   3003,
+   18,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "The",
+   "duty",
+   "ro",
+   "##ster",
+   "came",
+   "out",
+   "this",
+   "morning",
+   "and",
+   "it",
+   "was",
+   "fine",
+   ".",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "मुझे बिल्कुल नींद नहीं आ रही है।",
+  "ids": [
+   1,
+   1909,
+   7137,
+   9107,
+   546,
+   97,
+   1028,
+   296,
+   103,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "मुझे",
+   "बिल्कुल",
+   "नींद",
+   "नहीं",
+   "आ",
+   "रही",
+   "है",
+   "।",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "आज ड्यूटी रोस्टर आया। इस हफ़्ते मेरी सुबह की पाली है।",
+  "ids": [
+   1,
+   1058,
+   9260,
+   1206,
+   3932,
+   3147,
+   103,
+   416,
+   0,
+   3177,
+   4069,
+   331,
+   10643,
+   296,
+   103,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "आज",
+   "ड्यूटी",
+   "रो",
+   "##स्टर",
+   "आया",
+   "।",
+   "इस",
+   "[UNK]",
+   "मेरी",
+   "सुबह",
+   "की",
+   "पाली",
+   "है",
+   "।",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "I am on edge, short-tempered, and 3 days without rest!",
+  "ids": [
+   1,
+   45,
+   568,
+   295,
+   7448,
+   16,
+   1810,
+   17,
+   3154,
+   253,
+   16,
+   267,
+   23,
+   1007,
+   1451,
+   1438,
+   5,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "I",
+   "am",
+   "on",
+   "edge",
+   ",",
+   "short",
+   "-",
+   "temper",
+   "##ed",
+   ",",
+   "and",
+   "3",
+   "days",
+   "without",
+   "rest",
+   "!",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "ek din bahut mushkil tha lekin theek hoon",
+  "ids": [
+   1,
+   71,
+   159,
+   7687,
+   4983,
+   294,
+   1653,
+   157,
+   4709,
+   139,
+   5226,
+   426,
+   7967,
+   245,
+   696,
+   5929,
+   250,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "e",
+   "##k",
+   "din",
+   "bah",
+   "##ut",
+   "mus",
+   "##h",
+   "##ki",
+   "##l",
+   "tha",
+   "le",
+   "##kin",
+   "the",
+   "##ek",
+   "ho",
+   "##on",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "Mixed भाषा text with 123 numbers & punctuation...",
+  "ids": [
+   1,
+   13692,
+   3024,
+   3502,
+   353,
+   672,
+   140,
+   3543,
+   10,
+   13715,
+   5614,
+   5805,
+   250,
+   763,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "Mixed",
+   "भाषा",
+   "text",
+   "with",
+   "12",
+   "##3",
+   "numbers",
+   "&",
+   "punct",
+   "##ua",
+   "##ti",
+   "##on",
+   "...",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "",
+  "ids": [
+   1,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "   ",
+  "ids": [
+   1,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "[SEP]"
+  ]
+ },
+ {
+  "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "ids": [
+   1,
+   0,
+   2
+  ],
+  "tokens": [
+   "[CLS]",
+   "[UNK]",
+   "[SEP]"
+  ]
+ }
+]

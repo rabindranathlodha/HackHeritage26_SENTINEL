@@ -50,6 +50,13 @@ export default async function HomePage() {
             {t("startCheckIn")}
           </Link>
         )}
+
+        <Link
+          href="/journal"
+          className="border-border flex min-h-14 items-center justify-center rounded-xl border text-base font-medium"
+        >
+          {t("openJournal")}
+        </Link>
       </div>
 
       <LanguageToggle />

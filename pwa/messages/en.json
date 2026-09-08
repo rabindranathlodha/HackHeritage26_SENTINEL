@@ -46,7 +46,13 @@
     "onDevice": "Your words stay on this phone. Only a single number leaves it.",
     "save": "Save",
     "record": "Record a voice note",
-    "stop": "Stop"
+    "stop": "Stop",
+    "saved": "Saved on this phone",
+    "keepOnPhone": "Keep these words on my phone",
+    "keepHint": "Off by default. Nothing you write is ever sent, either way.",
+    "processing": "Reading this on your phone…",
+    "unavailable": "This phone cannot do the on-device reading. You can still write, and your words still stay here.",
+    "done": "Done"
   },
   "transparency": {
     "title": "What this app does with your information",
