@@ -54,30 +54,38 @@ export function ConsentToggle({ initial }: { initial: boolean }) {
         data-testid="consent-toggle"
         disabled={pending}
         onClick={() => change(!on)}
-        className="border-border flex min-h-14 items-center justify-between gap-4 rounded-2xl border px-5 text-left disabled:opacity-60"
+        className="border-line bg-surface flex min-h-14 items-start gap-3.5 rounded-xl border px-[17px] py-4 text-left disabled:opacity-60"
       >
-        <span className="text-base font-medium">{t("biometricHeading")}</span>
+        <span className="flex flex-1 flex-col gap-1">
+          <span className="text-base font-semibold">{t("biometricHeading")}</span>
+          <span className="text-ink-2 text-[13px] leading-snug">
+            {t("biometricBody")}
+          </span>
+          {/* The state, spelled out. A switch graphic alone asks the person to
+              remember which side means on — this says it, and says that
+              turning it back off is one tap. */}
+          <span className={`meta mt-1 ${on ? "text-ember-ink" : "text-ink-3"}`}>
+            {on ? t("consentOn") : t("consentOff")}
+          </span>
+        </span>
+
         <span
           aria-hidden
           className={
-            "relative h-7 w-12 shrink-0 rounded-full transition-colors " +
-            (on ? "bg-primary" : "bg-border")
+            "relative h-8 w-14 shrink-0 rounded-full transition-colors duration-200 " +
+            (on ? "bg-ember" : "bg-line")
           }
         >
           <motion.span
-            className="bg-background absolute top-1 size-5 rounded-full"
-            animate={{ left: on ? 26 : 4 }}
+            className="absolute top-[3px] size-[26px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,.18)]"
+            animate={{ left: on ? 27 : 3 }}
             transition={reduceMotion ? { duration: 0 } : { duration: 0.18 }}
           />
         </span>
       </button>
 
-      <p className="text-muted-foreground text-sm leading-relaxed">
-        {t("biometricBody")}
-      </p>
-
       {failed && (
-        <p role="alert" className="text-destructive text-sm">
+        <p role="alert" className="text-destructive text-[15px]">
           {t("consentFailed")}
         </p>
       )}

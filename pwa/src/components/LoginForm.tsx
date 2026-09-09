@@ -44,7 +44,7 @@ export function LoginForm({ labels }: { labels: Labels }) {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <label htmlFor="loginId" className="text-sm font-medium">
+        <label htmlFor="loginId" className="meta text-ink-3">
           {labels.id}
         </label>
         <input
@@ -54,12 +54,12 @@ export function LoginForm({ labels }: { labels: Labels }) {
           required
           value={loginId}
           onChange={(e) => setLoginId(e.target.value)}
-          className="border-border bg-card focus-visible:ring-ring/50 h-14 rounded-xl border px-4 text-base outline-none focus-visible:ring-3"
+          className="border-line bg-surface focus-visible:ring-ring/50 min-h-14 rounded-lg border-[1.5px] px-4 text-[17px] outline-none focus-visible:ring-3"
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="password" className="text-sm font-medium">
+        <label htmlFor="password" className="meta text-ink-3">
           {labels.password}
         </label>
         <input
@@ -70,14 +70,14 @@ export function LoginForm({ labels }: { labels: Labels }) {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="border-border bg-card focus-visible:ring-ring/50 h-14 rounded-xl border px-4 text-base outline-none focus-visible:ring-3"
+          className="border-line bg-surface focus-visible:ring-ring/50 min-h-14 rounded-lg border-[1.5px] px-4 text-[17px] outline-none focus-visible:ring-3"
         />
       </div>
 
       {/* One message for every failure. The server does not distinguish an
           unknown id from a wrong password, and neither does this. */}
       {failed && (
-        <p role="alert" className="text-destructive text-sm">
+        <p role="alert" className="text-destructive text-[15px]">
           {labels.failed}
         </p>
       )}
@@ -85,7 +85,7 @@ export function LoginForm({ labels }: { labels: Labels }) {
       <button
         type="submit"
         disabled={pending}
-        className="bg-primary text-primary-foreground mt-2 h-14 rounded-xl text-base font-medium disabled:opacity-60"
+        className="bg-ember text-on-ember mt-2 min-h-14 rounded-lg text-[17px] font-semibold disabled:opacity-60"
       >
         {pending ? labels.submitting : labels.submit}
       </button>

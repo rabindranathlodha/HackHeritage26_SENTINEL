@@ -20,7 +20,8 @@
     "verify:voice": "node scripts/verify-voice.mjs",
     "verify:consent": "node scripts/verify-consent.mjs",
     "verify:transparency": "node scripts/verify-transparency.mjs",
-    "verify:polish": "node scripts/verify-polish.mjs"
+    "verify:polish": "node scripts/verify-polish.mjs",
+    "verify:design": "node scripts/verify-design.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.8.0",

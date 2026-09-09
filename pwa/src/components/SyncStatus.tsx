@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
+import { Banner } from "@/components/Banner";
 import { flush, pendingCount } from "@/lib/offlineQueue";
 
 // The offline banner and sync status, together, because they are one thought:
@@ -67,12 +68,19 @@ export function SyncStatus() {
         ? t("synced")
         : null;
 
+  // The design separates these two tones deliberately. Offline is quiet — it
+  // is a fact about the world, not about the person, and colouring it would
+  // make having no signal look like a problem they caused. Sending is ember,
+  // because that is the app doing something on their behalf right now.
+  const sending = online && waiting > 0;
+  const tone = online && (waiting > 0 || justSynced) ? "ember" : "quiet";
+
   const transition = reduceMotion ? { duration: 0 } : { duration: 0.25 };
 
   return (
     <AnimatePresence initial={false}>
       {message && (
-        <motion.p
+        <motion.div
           key={message}
           role="status"
           aria-live="polite"
@@ -83,10 +91,11 @@ export function SyncStatus() {
           animate={{ opacity: 1, y: 0 }}
           exit={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -6 }}
           transition={transition}
-          className="bg-muted text-muted-foreground rounded-xl px-4 py-3 text-sm"
         >
-          {message}
-        </motion.p>
+          <Banner tone={tone} busy={sending}>
+            {message}
+          </Banner>
+        </motion.div>
       )}
     </AnimatePresence>
   );

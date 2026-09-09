@@ -3,9 +3,15 @@
     "name": "Companion",
     "tagline": "Your private wellness companion"
   },
+  "nav": {
+    "label": "Sections",
+    "home": "Home",
+    "journal": "Journal",
+    "privacy": "Privacy"
+  },
   "login": {
-    "heading": "Your private wellness companion",
-    "reassurance": "This space is yours. What you write here stays on your phone.",
+    "heading": "This one is yours.",
+    "reassurance": "Not a report. Not a form for anyone above you. A quiet place to notice how your week actually went.",
     "idLabel": "Your ID",
     "passwordLabel": "Password",
     "submit": "Sign in",
@@ -14,23 +20,38 @@
   },
   "home": {
     "greeting": "How are you doing this week?",
-    "supportive": "Your check-in helps your welfare team support you.",
-    "checkedIn": "Thanks for checking in this week.",
+    "checkInBlurb": "{count, plural, one {# short question} other {# short questions}}. Around three minutes. You can stop anywhere and come back.",
     "startCheckIn": "Start this week's check-in",
-    "openJournal": "Write something",
-    "openTransparency": "What this app does with your information",
+    "notNow": "Not now — we're here whenever you need a moment.",
+    "resumeTitle": "You left off at question {number}.",
+    "resumeProgress": "Saved on this phone · {done} of {total}",
+    "resume": "Continue where you left off",
+    "startOver": "Start again instead",
+    "checkedIn": "Thanks for checking in.",
+    "checkedInBody": "That's this week done. Nothing else is expected of you.",
+    "journalCard": "Journal",
+    "journalCardHint": "Writing works offline too",
+    "transparencyCard": "What we can and can't see",
+    "transparencyCardHint": "Plain language, no small print",
+    "settingsCard": "Your controls",
+    "settingsCardHint": "Delete everything · turn off sharing",
     "signOut": "Sign out"
   },
   "checkIn": {
     "title": "Wellness check",
     "intro": "A few questions about your week. There are no right answers, and nobody sees your individual replies except your welfare team.",
+    "eyebrow": "Thinking about the last week",
     "progress": "Question {current} of {total}",
     "next": "Next",
+    "nextQuestion": "Next question",
     "back": "Back",
-    "submit": "Finish",
+    "submit": "Finish check-in",
     "submitting": "Saving…",
-    "thanks": "Thank you for checking in",
-    "thanksBody": "That is all for this week. Your welfare team uses this to know where support is needed.",
+    "savedOnPhone": "Saved on this phone",
+    "leaveForNow": "Leave for now — your answers stay",
+    "thanks": "Done. Thanks for checking in.",
+    "thanksBody": "No number, no rating — just a note to yourself that this week happened.",
+    "doneAside": "If you'd like to talk to someone, that door is always open — and it's your call, not anyone else's.",
     "queued": "Saved on your phone. It will be sent when you are back on a network.",
     "scale": {
       "0": "Not at all",
@@ -38,12 +59,15 @@
       "2": "Quite a lot",
       "3": "Very much"
     },
-    "backHome": "Back to home"
+    "backHome": "Back home"
   },
   "journal": {
-    "title": "Write something",
+    "title": "Journal",
     "prompt": "Anything you want to put into words. Nobody reads this but you.",
     "onDevice": "Your words stay on this phone. Only a single number leaves it.",
+    "onPhoneOnly": "On this phone only",
+    "emptyTitle": "Nothing here yet — and that's fine.",
+    "emptyBody": "Some people write every week. Some never do. Both are alright.",
     "save": "Save",
     "record": "Speak instead of typing",
     "stop": "Stop",
@@ -59,12 +83,14 @@
     "voiceDownload": "Download the on-device language pack to use voice",
     "voiceDownloading": "Getting the language pack ready…",
     "voiceError": "The microphone stopped. Nothing was kept — you can try again or type.",
+    "errorTitle": "We couldn't finish saving that one.",
+    "errorBody": "Your words are still here on the screen — nothing is lost. Your phone's storage may be full.",
     "historyHeading": "Kept on this phone",
     "historyEmpty": "Nothing kept yet. Tick the box above if you want an entry to stay on your phone.",
     "historyCount": "{count, plural, one {# entry} other {# entries}}"
   },
   "transparency": {
-    "title": "What this app does with your information",
+    "title": "What we can and can't see",
     "intro": "Written plainly, and kept accurate. Every statement here describes what this app actually does today.",
     "collectedHeading": "What is collected",
     "collectedBody": "Your weekly check-in answers. If you write or speak, that is read on this phone and only a single number leaves it. Nothing else about what you wrote is sent.",
@@ -83,11 +109,14 @@
     "questionsBody": "Ask your welfare officer. You are entitled to know what is held about you."
   },
   "settings": {
-    "title": "Settings",
-    "language": "Language",
-    "biometricHeading": "Wellness signal",
-    "biometricBody": "Share resting heart rate and sleep from a wearable. Off unless you turn it on, and you can turn it off again whenever you want.",
+    "title": "Your controls",
+    "language": "Language · भाषा",
+    "biometricHeading": "Share sleep & step patterns",
+    "biometricBody": "From a wearable, if you connect one. Off unless you turn it on, and you can turn it off again whenever you want.",
+    "consentOff": "Off · you haven't turned this on",
+    "consentOn": "On · tap to undo",
     "clearJournal": "Delete my journal from this phone",
+    "clearJournalBody": "Removes the entries you chose to keep. Check-ins already on their way to your welfare team are left alone. Nobody is notified.",
     "signOut": "Sign out",
     "consentFailed": "That did not save. Your setting has not changed — please try again.",
     "clearJournalDone": "Deleted from this phone",
@@ -97,7 +126,7 @@
   "offline": {
     "title": "You are offline",
     "body": "You can keep using the app. Anything you save will be sent when you are back on a network.",
-    "banner": "No network. You can keep going.",
+    "banner": "You're offline. Everything still works.",
     "syncing": "Sending {count, plural, one {# check-in} other {# check-ins}}…",
     "synced": "Everything is sent"
   },
@@ -107,6 +136,7 @@
   },
   "states": {
     "loading": "Just a moment…",
+    "loadingLabel": "Opening your phone's copy…",
     "errorTitle": "That did not load",
     "errorBody": "Nothing you have written or answered has been lost. Try again, or come back in a moment.",
     "errorRetry": "Try again",

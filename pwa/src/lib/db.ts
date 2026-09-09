@@ -10,11 +10,12 @@ import type { CheckInSubmission } from "@/lib/schemas";
 // transparency screen promises stays put.
 
 const DB_NAME = "sentinel-companion";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const OUTBOX = "outbox";
 export const JOURNAL = "journal";
 export const SIGNALS = "signals";
+export const DRAFTS = "drafts";
 
 export type QueuedSubmission = CheckInSubmission & {
   /** When the person pressed the button, not when it was sent. */
@@ -37,6 +38,26 @@ export type PendingSignal = {
   at: number;
 };
 
+/**
+ * A check-in in progress.
+ *
+ * The design's rule is that "every answer saves the moment it's tapped, so
+ * leaving mid-way costs nothing", and the check-in screen says so on screen.
+ * That sentence is only true if the answers are somewhere other than React
+ * state, which does not survive a backgrounded tab on a phone under memory
+ * pressure — the exact device this app runs on.
+ *
+ * `questionCount` is stored so a draft written against a different
+ * questionnaire is discarded rather than replayed into the wrong items.
+ */
+export type CheckInDraft = {
+  id: "check-in";
+  answers: (number | null)[];
+  index: number;
+  questionCount: number;
+  updatedAt: number;
+};
+
 export interface CompanionDB extends DBSchema {
   [OUTBOX]: {
     key: string;
@@ -51,6 +72,10 @@ export interface CompanionDB extends DBSchema {
   [SIGNALS]: {
     key: string;
     value: PendingSignal;
+  };
+  [DRAFTS]: {
+    key: string;
+    value: CheckInDraft;
   };
 }
 
@@ -69,6 +94,9 @@ export function db(): Promise<IDBPDatabase<CompanionDB>> {
         const journal = database.createObjectStore(JOURNAL, { keyPath: "id" });
         journal.createIndex("writtenAt", "writtenAt");
         database.createObjectStore(SIGNALS, { keyPath: "id" });
+      }
+      if (oldVersion < 3) {
+        database.createObjectStore(DRAFTS, { keyPath: "id" });
       }
     },
   });

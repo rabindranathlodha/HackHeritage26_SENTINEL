@@ -27,9 +27,9 @@ export function OfflineNotice({ copy }: { copy: Copy }) {
   const text = copy[locale];
 
   return (
-    <div className="space-y-3" lang={locale}>
-      <h1 className="text-2xl font-medium tracking-tight text-balance">{text.title}</h1>
-      <p className="text-muted-foreground text-base leading-relaxed">{text.body}</p>
+    <div className="flex flex-col gap-4" lang={locale}>
+      <h1 className="anchor">{text.title}</h1>
+      <p className="text-ink-2 text-lg leading-relaxed">{text.body}</p>
     </div>
   );
 }

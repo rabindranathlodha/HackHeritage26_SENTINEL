@@ -4,12 +4,47 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ---------------------------------------------------------------------------
+   The Companion design system (design-import/SENTINEL Companion.dc.html).
+
+   Two vocabularies live here and they are not the same thing:
+
+   - The design's own names (--paper, --ink, --ember, --line). These are what
+     the design document says, and screens are written against them.
+   - The shadcn names (--background, --primary, --border). These exist because
+     components/ui is written against them, and remapping them here means the
+     whole component layer follows the palette instead of being rewritten.
+
+   Only the first group is ever redefined per theme. The second group is a
+   fixed set of aliases, so a theme cannot drift the two apart.
+--------------------------------------------------------------------------- */
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+
+  /* The design's names, exposed to Tailwind so screens can say bg-paper,
+     text-ink-2, border-line rather than reaching for arbitrary values. */
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-ember: var(--ember);
+  --color-ember-soft: var(--ember-soft);
+  --color-ember-ink: var(--ember-ink);
+  --color-on-ember: var(--on-ember);
+  --color-hero: var(--hero);
+  --color-hero-ink: var(--hero-ink);
+  --color-hero-meta: var(--hero-meta);
+
+  --font-sans: var(--stack-body);
+  --font-display: var(--stack-display);
+  --font-mono: var(--stack-mono);
+  --font-heading: var(--stack-display);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,129 +74,159 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Controls are 16px, cards 20px, the phone frame 34px. Radius is a scale
+     here rather than one number times a fudge factor, because the design
+     names three specific values and a multiplier cannot hit all three. */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 16px;
+  --radius-xl: 18px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 34px;
+
+  /* 4pt base. */
+  --spacing: 0.25rem;
 }
 
-/* The palette, taken from the app's own mark (public/icons/icon.svg): a deep
-   ink blue, a mid teal, and a soft glow. Neutrals carry a faint cool cast
-   rather than being pure grey — a chosen neutral reads as considered, an
-   unchosen one reads as a default nobody looked at.
-
-   Calm is the brief, so nothing here is saturated: this is a wellbeing tool
-   opened by someone tired at the end of a shift, not a dashboard competing for
-   attention. */
+/* Light.
+   Warm paper and a single owned accent. Ember is a terracotta the design
+   takes from parade-ground earth: it marks exactly one action per screen and
+   is never used to alarm, which is why there is no amber or red in this
+   palette to reach for by accident. */
 :root {
-  --background: oklch(0.978 0.004 210);
-  --foreground: oklch(0.28 0.035 243);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.28 0.035 243);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.28 0.035 243);
-  --primary: oklch(0.45 0.079 228);
-  --primary-foreground: oklch(0.985 0.003 210);
-  --secondary: oklch(0.948 0.008 210);
-  --secondary-foreground: oklch(0.32 0.035 240);
-  --muted: oklch(0.948 0.008 210);
-  --muted-foreground: oklch(0.455 0.024 235);
-  --accent: oklch(0.93 0.022 195);
-  --accent-foreground: oklch(0.3 0.04 235);
-  --destructive: oklch(0.505 0.15 25);
-  --border: oklch(0.9 0.009 215);
-  --input: oklch(0.9 0.009 215);
-  --ring: oklch(0.6 0.085 215);
-  --chart-1: oklch(0.45 0.079 228);
-  --chart-2: oklch(0.62 0.07 200);
-  --chart-3: oklch(0.75 0.075 185);
-  --chart-4: oklch(0.55 0.05 250);
-  --chart-5: oklch(0.68 0.04 220);
-  --radius: 0.875rem;
-  --sidebar: oklch(0.978 0.004 210);
-  --sidebar-foreground: oklch(0.28 0.035 243);
-  --sidebar-primary: oklch(0.45 0.079 228);
-  --sidebar-primary-foreground: oklch(0.985 0.003 210);
-  --sidebar-accent: oklch(0.93 0.022 195);
-  --sidebar-accent-foreground: oklch(0.3 0.04 235);
-  --sidebar-border: oklch(0.9 0.009 215);
-  --sidebar-ring: oklch(0.6 0.085 215);
+  --paper: #f7f4f1;
+  --surface: #ffffff;
+  --sunk: #efeae4;
+  --ink: #231f1c;
+  --ink-2: #6e655d;
+  --ink-3: #726a64;
+  --line: #e4ded7;
+  --ember: #b4562a;
+  --ember-soft: #f5e4d9;
+  --ember-ink: #8e4220;
+  --on-ember: #ffffff;
+
+  /* The one place the accent is allowed to look like a warning: a save that
+     failed. Kept inside the warm family so it reads as concern, not alarm. */
+  --alarm: #8e2f1c;
+
+  /* The emphasised tile on the transparency screen — the one statement that
+     should land before any other. It cannot just be `--ink` as a background:
+     in dark mode --ink is near-white, and the most important promise in the
+     product would render as a torch in a dark room at 22:00. So it is its own
+     pair, dark-on-light here and raised-warm in dark. */
+  --hero: #231f1c;
+  --hero-ink: #f7f4f1;
+  --hero-meta: #9a9088;
+
+  --grain-opacity: 0.16;
+  --grain-blend: multiply;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--ember);
+  --primary-foreground: var(--on-ember);
+  --secondary: var(--sunk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sunk);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--ember-soft);
+  --accent-foreground: var(--ember-ink);
+  --destructive: var(--alarm);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--ember);
+  --chart-1: var(--ember);
+  --chart-2: #c07a4e;
+  --chart-3: #d9a86a;
+  --chart-4: #8a6a52;
+  --chart-5: #a79e96;
+  --radius: 1rem;
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ember);
+  --sidebar-primary-foreground: var(--on-ember);
+  --sidebar-accent: var(--ember-soft);
+  --sidebar-accent-foreground: var(--ember-ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--ember);
+
+  /* Latin by default. :lang(hi) swaps both stacks below; the Latin faces stay
+     in each stack as the fallback for Latin runs inside Hindi copy — a time,
+     a number, a unit name. */
+  --stack-display: var(--font-bricolage), Georgia, serif;
+  --stack-body: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --stack-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
-/* Dark is not an afterthought here. Personnel check in at the end of a shift,
-   often at night, often in a shared room — a bright screen is conspicuous as
-   well as unpleasant. The ground is the mark's ink blue and the accent becomes
-   the glow, so the identity holds rather than inverting into something else. */
+/* Dark.
+   "Dark is not inverted — it is a warmer, quieter room." Night duty is when
+   this app is opened most, so this is an equal-first palette rather than a
+   derived one: the ground is warm charcoal, not the light theme flipped. */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --background: oklch(0.225 0.035 245);
-    --foreground: oklch(0.94 0.008 205);
-    --card: oklch(0.268 0.034 244);
-    --card-foreground: oklch(0.94 0.008 205);
-    --popover: oklch(0.268 0.034 244);
-    --popover-foreground: oklch(0.94 0.008 205);
-    --primary: oklch(0.8 0.088 182);
-    --primary-foreground: oklch(0.225 0.04 245);
-    --secondary: oklch(0.31 0.03 243);
-    --secondary-foreground: oklch(0.94 0.008 205);
-    --muted: oklch(0.31 0.03 243);
-    --muted-foreground: oklch(0.755 0.021 205);
-    --accent: oklch(0.34 0.035 220);
-    --accent-foreground: oklch(0.94 0.008 205);
-    --destructive: oklch(0.71 0.14 25);
-    --border: oklch(1 0 0 / 13%);
-    --input: oklch(1 0 0 / 16%);
-    --ring: oklch(0.7 0.07 195);
-    --sidebar: oklch(0.225 0.035 245);
-    --sidebar-foreground: oklch(0.94 0.008 205);
-    --sidebar-primary: oklch(0.8 0.088 182);
-    --sidebar-primary-foreground: oklch(0.225 0.04 245);
-    --sidebar-accent: oklch(0.34 0.035 220);
-    --sidebar-accent-foreground: oklch(0.94 0.008 205);
-    --sidebar-border: oklch(1 0 0 / 13%);
-    --sidebar-ring: oklch(0.7 0.07 195);
+    --paper: #191715;
+    --surface: #232120;
+    --sunk: #232120;
+    --ink: #f3efea;
+    --ink-2: #a79e96;
+    --ink-3: #a79e96;
+    --line: #332f2c;
+    --ember: #e28b56;
+    --ember-soft: #38271d;
+    --ember-ink: #e28b56;
+    --on-ember: #191715;
+
+    --alarm: #e8896f;
+
+    /* Raised warm, not inverted: still clearly the emphasised tile, without
+       being a bright block at night. */
+    --hero: #2e2a27;
+    --hero-ink: #f3efea;
+    --hero-meta: #a79e96;
+
+    /* Multiply over a near-black ground does almost nothing; screen at a much
+       lower opacity keeps the same tooth without muddying the type. */
+    --grain-opacity: 0.05;
+    --grain-blend: screen;
   }
 }
 
-/* The class-based variant stays, so a future preference toggle works without
-   this file changing. The media query above is what actually fires today,
-   because there is no toggle and a person's own system setting is the honest
-   default. */
+/* The class variant, kept in step with the media query above rather than
+   holding the greyscale defaults it shipped with. A toggle added later gets
+   the real palette; before this it would have got a different product. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --paper: #191715;
+  --surface: #232120;
+  --sunk: #232120;
+  --ink: #f3efea;
+  --ink-2: #a79e96;
+  --ink-3: #a79e96;
+  --line: #332f2c;
+  --ember: #e28b56;
+  --ember-soft: #38271d;
+  --ember-ink: #e28b56;
+  --on-ember: #191715;
+  --alarm: #e8896f;
+  --hero: #2e2a27;
+  --hero-ink: #f3efea;
+  --hero-meta: #a79e96;
+  --grain-opacity: 0.05;
+  --grain-blend: screen;
+}
+
+/* Devanagari is designed, not translated: its own display face, a larger
+   optical size and looser leading so the shirorekha never crowds the line
+   above. Applied by lang, so a Hindi run inside English copy still gets it. */
+:root:lang(hi) {
+  --stack-display: var(--font-anek), var(--font-bricolage), sans-serif;
+  --stack-body: var(--font-mukta), var(--font-hanken), sans-serif;
 }
 
 @layer base {
@@ -177,14 +242,25 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Slightly open by default: this copy is read on a small screen, often in
-       poor light, sometimes in a second language. */
-    line-height: 1.6;
+    /* The design's body size is 17/1.55 and its floor is 15px. Setting it on
+       body rather than per-screen means a component that forgets to say still
+       lands on the scale. */
+    font-size: 1.0625rem;
+    line-height: 1.55;
     text-rendering: optimizeLegibility;
   }
 
+  /* Devanagari sits optically smaller at the same px, and its conjuncts need
+     more room between lines than Latin does. */
+  :lang(hi) body {
+    font-size: 1.125rem;
+    line-height: 1.7;
+  }
+
   h1,
-  h2 {
+  h2,
+  h3 {
+    font-family: var(--stack-display);
     text-wrap: balance;
   }
 
@@ -192,16 +268,21 @@
     text-wrap: pretty;
   }
 
-  /* One face, worked hard, rather than a second family. A display face would
-     cost another network request on a phone that already downloads a model,
-     and "fast load beats spectacle" is the brief. The hierarchy comes from
-     weight, size and tracking instead. */
+  /* The display face carries the hierarchy through weight and tight tracking.
+     Devanagari does not take negative tracking well — it closes up the gaps
+     the shirorekha needs — so it resets to normal rather than inheriting. */
   h1 {
-    letter-spacing: -0.021em;
+    letter-spacing: -0.035em;
   }
 
   h2 {
-    letter-spacing: -0.012em;
+    letter-spacing: -0.02em;
+  }
+
+  :lang(hi) h1,
+  :lang(hi) h2,
+  :lang(hi) h3 {
+    letter-spacing: normal;
   }
 
   /* Keyboard focus must be visible on every control, including the ones styled
@@ -224,5 +305,118 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+@layer components {
+  /* The design's meta style: mono, wide tracking, upper case. Used for dates,
+     states and the privacy chips — never for anything read at length. */
+  .meta {
+    font-family: var(--stack-mono);
+    font-weight: 500;
+    font-size: 0.75rem;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Devanagari has no case, so upper-casing it does nothing but it does break
+     the mono fallback chain. Left as-is at a readable size instead. */
+  :lang(hi) .meta {
+    font-family: var(--stack-body);
+    font-size: 0.8125rem;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  /* Anchor type: the one large line per screen. Clamped because a 42px anchor
+     on a 320px phone wraps to four lines and stops being an anchor. */
+  .anchor {
+    font-family: var(--stack-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 10.5vw, 2.625rem);
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+  }
+
+  :lang(hi) .anchor {
+    line-height: 1.25;
+    letter-spacing: normal;
+  }
+}
+
+/* The design's three named loops. Each is deliberately slow: the brief is
+   "slow enough to feel accompanied, never snappy", and the global
+   reduced-motion rule above collapses all of them to instant.
+
+   These are CSS rather than Framer Motion on purpose. They are ambient and
+   never interrupt, so they should not cost a hydrated component, a listener,
+   or a frame of main-thread work on a phone that is also running a model. */
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.14);
+    opacity: 0.8;
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes spin-soft {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@layer components {
+  /* Home only, and below the fold of attention: one ember glow that breathes
+     at roughly the rate of a calm breath. It is decoration with no state in
+     it, so it is hidden from assistive technology rather than described. */
+  .ambient-glow {
+    animation: breathe 12s ease-in-out infinite;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--ember) 20%, transparent),
+      transparent 70%
+    );
+  }
+
+  .shimmer {
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  /* "2.4s slow rotation, no spinner burst." A fast spinner reads as the app
+     struggling; this reads as the app working. */
+  .spin-soft {
+    animation: spin-soft 2.4s linear infinite;
+  }
+}
+
+/* The paper tooth. A single fixed layer rather than a background on each
+   surface, so it does not multiply with itself where cards overlap. It sits
+   above nothing interactive, and is dropped entirely for anyone who has asked
+   for reduced transparency, since it is texture with no information in it. */
+@media (prefers-reduced-transparency: no-preference) {
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    opacity: var(--grain-opacity);
+    mix-blend-mode: var(--grain-blend);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
   }
 }

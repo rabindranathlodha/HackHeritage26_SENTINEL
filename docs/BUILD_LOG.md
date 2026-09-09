@@ -1745,3 +1745,71 @@ incumbent's metadata file, which it had not touched. The file was verified intac
 before anything was changed. It now prints the path it actually wrote — a message
 that misreports a destructive-looking action invites someone to "restore" a file
 that was never damaged.
+
+## Companion design system, implemented
+
+The PWA's visual layer now comes from a design document
+(`pwa/design-import/SENTINEL Companion.dc.html`) rather than from shadcn's
+defaults with a palette swapped in. The document is committed alongside the code
+it produced, because several screens are only explicable by reading it.
+
+**The system.** Warm paper (`#F7F4F1`) and a single owned accent — Ember, a
+terracotta used for exactly one action per screen and never for alarm. There is
+deliberately no red in the palette to reach for later. Dark is an equal-first
+design on a warm charcoal ground (`#191715`), not an inversion: night duty is
+when this app is opened most. Type is a real pairing — Bricolage Grotesque for
+anchors, Hanken Grotesk for body, JetBrains Mono for the meta labels — with
+Anek Devanagari and Mukta for Hindi, at a larger optical size and with the Latin
+negative tracking reset so the shirorekha is not crushed.
+
+All five faces are self-hosted through `next/font`. The document links them from
+`fonts.googleapis.com`, which is right for a document and wrong for an app that
+is already downloading a model; only the two Latin faces are preloaded.
+
+**Four places the design and the running system disagreed.** Each was resolved
+towards what the code actually does, because this product's claims are its
+premise:
+
+- The Done screen's copy reads "No score, no rating". `tests/copy.test.ts`
+  forbids the word *score* in any message file, and `verify-checkin.mjs` asserts
+  it never reaches the person. Reworded to "No number, no rating".
+- The settings control is labelled "Delete everything on this phone", and wipes
+  "answers, notes and recordings". `ClearLocalData` deliberately spares the
+  outbox — those are answers the person believes they submitted — and no audio
+  recording is ever created. The label now says what the code does.
+- The check-in is drawn with six questions. There are nine. A person told "six"
+  who then answers nine has been misled by the one screen promising not to.
+- "Talk to a welfare officer" appears as a button on two screens. Nothing in this
+  app contacts anyone on a person's behalf, so it is rendered as a statement that
+  the door exists, not a control that opens it.
+
+**One place the design was right and the code was not.** The check-in screen says
+"every answer saves the moment it's tapped", and the home screen offers to resume
+an unfinished one. Answers lived in React state, which does not survive a
+backgrounded tab on a phone under memory pressure — so both sentences would have
+been false. `lib/draft.ts` and a `drafts` store (DB v3) make them true.
+`saveDraft` returns whether the write landed, and "Saved on this phone" renders
+only on a confirmed `true`: a reassurance shown when the save failed is worse
+than none. The journal's save path gained the error state the design draws, and
+no longer clears the textarea when saving fails.
+
+**Verification.** `scripts/verify-design.mjs` (new, `npm run verify:design`)
+asserts the palette by value rather than checking that colours exist — a token
+file that silently fell back to shadcn's defaults would still render a styled
+page, just a different product. 17/17. The existing gates were re-run unchanged:
+polish 10/10, check-in 8/8, transparency 10/10, offline 9/9, consent 10/10,
+on-device 9/9, voice 6/6, i18n 8/8, auth 8/8, installable 10/10, unit tests
+31/31.
+
+Lighthouse on a mid-tier mobile profile, with the full type pairing, the ambient
+glow and the paper grain: **performance 96, accessibility 100, best practices
+100** on both `/login` and `/home`; CLS 0 and 0.001. The budget was ≥ 90.
+
+### A test whose precondition is not established
+
+`verify-checkin.mjs` asserts "the home screen offers the check-in when one is
+due", but never arranges for one to be due. Run against an account that had
+checked in earlier the same week it reports a failure, and the failure is
+correct behaviour — the home screen was showing "Thanks for checking in." The
+run against a clean account passes 8/8. Worth fixing by having the test assert
+the state it actually finds, rather than by rotating accounts until it is green.

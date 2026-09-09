@@ -26,6 +26,12 @@ const eslintConfig = [
       // onnxruntime-web's own distribution, copied in by `npm run ort:assets`.
       // Not source: linting it reports on Microsoft's minified bundles.
       "public/ort/**",
+      // The design document this UI was built from, plus the Claude Design
+      // canvas runtime it needs to render. Kept in the repo as the reference
+      // the screens are checked against, the way a spec is — but it is a
+      // generated artefact, not source, and linting it reports on someone
+      // else's bundler output.
+      "design-import/**",
     ],
   },
 ];

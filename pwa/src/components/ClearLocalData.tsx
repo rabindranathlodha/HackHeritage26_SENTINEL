@@ -11,6 +11,11 @@ import { forgetEntries } from "@/lib/journal";
 // waiting in the outbox — those are the person's own answers on their way to
 // their welfare team, and silently discarding them under a button labelled
 // "delete my journal" would lose data they believe they submitted.
+//
+// The design's label for this control is "Delete everything on this phone".
+// That is a bigger promise than the code keeps, so the copy here says what
+// actually happens instead. On the one screen about control, a label that
+// overstates its own reach is the worst possible place to be approximate.
 export function ClearLocalData() {
   const t = useTranslations("settings");
   const [done, setDone] = useState(false);
@@ -24,12 +29,18 @@ export function ClearLocalData() {
           await forgetEntries();
           setDone(true);
         }}
-        className="border-border min-h-14 rounded-xl border text-base font-medium"
+        // Outlined rather than filled: this is the one destructive control in
+        // the product, and the design gives destruction no colour at all — a
+        // red button invites the tap it should be discouraging.
+        className="border-line flex min-h-14 flex-col gap-1 rounded-xl border-[1.5px] px-[17px] py-4 text-left"
       >
-        {t("clearJournal")}
+        <span className="text-base font-semibold">{t("clearJournal")}</span>
+        <span className="text-ink-2 text-[13px] leading-snug">
+          {t("clearJournalBody")}
+        </span>
       </button>
       {done && (
-        <p role="status" className="text-muted-foreground text-sm">
+        <p role="status" className="text-ember-ink meta">
           {t("clearJournalDone")}
         </p>
       )}

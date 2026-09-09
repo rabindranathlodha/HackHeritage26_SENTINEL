@@ -5,10 +5,10 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 import type { Locale } from "@/i18n/locale";
 import { entries as keptEntries, keepEntry, stashContribution } from "@/lib/journal";
 import { capability, scoreText } from "@/lib/onnx";
-import { VoiceRecorder } from "@/components/VoiceRecorder";
 
 // The journal (PWA spec 4.4).
 //
@@ -29,6 +29,7 @@ export function JournalEditor({ locale }: { locale: Locale }) {
   const [keep, setKeep] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [canScore, setCanScore] = useState<boolean | null>(null);
   const [kept, setKept] = useState<{ id: string; writtenAt: number; text: string }[]>([]);
 
@@ -51,6 +52,7 @@ export function JournalEditor({ locale }: { locale: Locale }) {
     if (!words) return;
 
     setBusy(true);
+    setFailed(false);
     try {
       // On this device. Null when the model is missing or the device cannot run
       // it — the check-in proceeds without a contribution, and the words still
@@ -67,13 +69,34 @@ export function JournalEditor({ locale }: { locale: Locale }) {
       setText("");
       setSaved(true);
       router.refresh();
+    } catch {
+      // The design's rule for this state: "Your words are still here on the
+      // screen — nothing is lost." So the textarea is deliberately NOT cleared
+      // on this path. A person whose phone ran out of storage should not also
+      // lose what they just wrote.
+      setFailed(true);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
+      {failed && (
+        <div role="alert" className="bg-sunk flex flex-col gap-3 rounded-2xl p-5">
+          <h2 className="text-[22px] leading-tight font-semibold">{t("errorTitle")}</h2>
+          <p className="text-ink-2 text-base leading-relaxed">{t("errorBody")}</p>
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy}
+            className="bg-ember text-on-ember min-h-14 rounded-md text-base font-semibold disabled:opacity-50"
+          >
+            {t("save")}
+          </button>
+        </div>
+      )}
+
       <label htmlFor="journal" className="sr-only">
         {t("title")}
       </label>
@@ -85,7 +108,7 @@ export function JournalEditor({ locale }: { locale: Locale }) {
           setSaved(false);
         }}
         rows={8}
-        className="border-border bg-card focus-visible:ring-ring/50 min-h-48 rounded-2xl border p-4 text-base leading-relaxed outline-none focus-visible:ring-3"
+        className="border-line bg-surface focus-visible:ring-ring/50 min-h-48 rounded-xl border-[1.5px] p-[18px] text-[17px] leading-relaxed outline-none focus-visible:ring-3"
       />
 
       {/* Speech goes into the same box, so the person can read and correct it
@@ -98,61 +121,33 @@ export function JournalEditor({ locale }: { locale: Locale }) {
         }}
       />
 
-      <label className="flex items-start gap-3 text-sm">
+      <label className="flex items-start gap-3 text-[15px]">
         <input
           type="checkbox"
           checked={keep}
           onChange={(event) => setKeep(event.target.checked)}
-          className="mt-1 size-5 shrink-0"
+          className="accent-ember mt-1 size-5 shrink-0"
         />
         <span>
           {t("keepOnPhone")}
-          <span className="text-muted-foreground block text-xs">{t("keepHint")}</span>
+          <span className="text-ink-2 mt-0.5 block text-[13px] leading-snug">
+            {t("keepHint")}
+          </span>
         </span>
       </label>
 
       {canScore === false && (
-        <p className="text-muted-foreground text-sm">{t("unavailable")}</p>
+        <p className="text-ink-2 text-[15px] leading-relaxed">{t("unavailable")}</p>
       )}
 
       <button
         type="button"
         onClick={save}
         disabled={busy || text.trim().length === 0}
-        className="bg-primary text-primary-foreground min-h-14 rounded-xl text-base font-medium disabled:opacity-50"
+        className="bg-ember text-on-ember min-h-14 rounded-lg text-[17px] font-semibold disabled:opacity-50"
       >
         {busy ? t("processing") : t("save")}
       </button>
-
-      <section className="border-border mt-2 flex flex-col gap-3 border-t pt-6">
-        <h2 className="text-base font-medium">{t("historyHeading")}</h2>
-        {kept.length === 0 ? (
-          /* The empty state, written as guidance rather than as an absence. */
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {t("historyEmpty")}
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {kept.map((entry) => (
-              <li
-                key={entry.id}
-                className="border-border bg-card rounded-2xl border p-4 text-sm leading-relaxed"
-              >
-                <time
-                  className="text-muted-foreground block text-xs tabular-nums"
-                  dateTime={new Date(entry.writtenAt).toISOString()}
-                >
-                  {new Date(entry.writtenAt).toLocaleDateString(locale, {
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </time>
-                <p className="mt-1 whitespace-pre-wrap">{entry.text}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
 
       {saved && (
         <motion.p
@@ -160,11 +155,51 @@ export function JournalEditor({ locale }: { locale: Locale }) {
           aria-live="polite"
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-muted-foreground text-sm"
+          className="meta text-ember-ink flex items-center gap-2"
         >
+          <span aria-hidden className="bg-ember size-[7px] rounded-full" />
           {t("saved")}
         </motion.p>
       )}
+
+      <section className="border-line mt-1 flex flex-col gap-3 border-t pt-6">
+        <h2 className="meta text-ink-3">{t("historyHeading")}</h2>
+
+        {kept.length === 0 ? (
+          // The design writes the empty state as reassurance, not as an
+          // absence: "Nothing here yet — and that's fine." Someone who has
+          // never written should not be made to feel behind.
+          <div className="flex flex-col gap-3 py-2">
+            <p className="text-ink-2 text-[22px] leading-tight font-semibold">
+              {t("emptyTitle")}
+            </p>
+            <p className="text-ink-3 text-[15px] leading-relaxed">{t("emptyBody")}</p>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {kept.map((entry) => (
+              <li
+                key={entry.id}
+                className="border-line bg-surface rounded-2xl border p-5"
+              >
+                <time
+                  className="meta text-ink-3 block"
+                  dateTime={new Date(entry.writtenAt).toISOString()}
+                >
+                  {new Date(entry.writtenAt).toLocaleDateString(locale, {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </time>
+                <p className="mt-2.5 text-[17px] leading-relaxed whitespace-pre-wrap">
+                  {entry.text}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

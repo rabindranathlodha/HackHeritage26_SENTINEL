@@ -79,7 +79,7 @@ export function VoiceRecorder({
   if (support === null) return null;
 
   if (support.state === "unsupported") {
-    return <p className="text-muted-foreground text-sm">{t("voiceUnsupported")}</p>;
+    return <p className="text-ink-2 text-[15px] leading-relaxed">{t("voiceUnsupported")}</p>;
   }
 
   if (support.state === "downloadable" || support.state === "downloading") {
@@ -88,7 +88,7 @@ export function VoiceRecorder({
         type="button"
         onClick={download}
         disabled={installing || support.state === "downloading"}
-        className="border-border min-h-14 rounded-xl border text-base font-medium disabled:opacity-60"
+        className="border-line min-h-14 rounded-lg border-[1.5px] text-[17px] font-medium disabled:opacity-60"
       >
         {installing || support.state === "downloading"
           ? t("voiceDownloading")
@@ -105,14 +105,14 @@ export function VoiceRecorder({
         aria-pressed={listening}
         onClick={listening ? stop : start}
         className={
-          "flex min-h-14 items-center justify-center gap-3 rounded-xl border text-base font-medium " +
-          (listening ? "border-primary text-primary" : "border-border")
+          "flex min-h-14 items-center justify-center gap-3 rounded-lg border-[1.5px] text-[17px] font-medium " +
+          (listening ? "border-ember text-ember-ink" : "border-line")
         }
       >
         {listening && (
           <motion.span
             aria-hidden
-            className="bg-primary size-2.5 rounded-full"
+            className="bg-ember size-2.5 rounded-full"
             animate={reduceMotion ? {} : { opacity: [1, 0.3, 1] }}
             transition={reduceMotion ? { duration: 0 } : { duration: 1.6, repeat: Infinity }}
           />
@@ -121,10 +121,10 @@ export function VoiceRecorder({
       </button>
 
       {/* Stated where the microphone is, not only on the transparency screen. */}
-      <p className="text-muted-foreground text-xs">{t("voiceOnDevice")}</p>
+      <p className="text-ink-2 text-[13px] leading-snug">{t("voiceOnDevice")}</p>
 
       {failed && (
-        <p role="alert" className="text-muted-foreground text-sm">
+        <p role="alert" className="text-ink-2 text-[15px]">
           {t("voiceError")}
         </p>
       )}
