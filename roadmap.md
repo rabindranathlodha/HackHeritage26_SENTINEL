@@ -1,0 +1,6 @@
+- [x] Continue SENTINEL milestone: wellness, assessment, chart, and route pieces
+- [x] Verify all routes render with unique metadata
+- [x] Validate typecheck, check-in flow, and preview for runtime errors
+- [x] Soften the shared square grid background with a low-opacity side fade
+- [x] Connect Settings language controls to the shared English/Hindi language switch
+- [x] Tune the shared grid background toward the uploaded orange-edge reference

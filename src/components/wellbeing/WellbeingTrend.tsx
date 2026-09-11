@@ -1,0 +1,11 @@
+"use client";
+
+import { ChartNoAxesCombined } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import type { WellbeingPoint } from "@/lib/sentinel/types";
+
+export function WellbeingTrend({ data }: { data: WellbeingPoint[] }) {
+  const { t } = useTranslation();
+  return <div className="rounded-[2rem] border border-border bg-card p-5 shadow-soft sm:p-7"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("wellbeing.chartEyebrow")}</p><h2 className="mt-2 text-xl font-bold text-foreground">{t("wellbeing.chartTitle")}</h2></div><span className="flex size-10 items-center justify-center rounded-2xl bg-mint text-primary"><ChartNoAxesCombined aria-hidden="true" className="size-5" /></span></div><div className="mt-7 h-64 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}><CartesianGrid vertical={false} stroke="var(--color-border)" strokeDasharray="4 4" /><XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} /><YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fill: "var(--color-muted-foreground)", fontSize: 11 }} /><Tooltip contentStyle={{ borderRadius: "12px", border: "1px solid var(--color-border)", background: "var(--color-card)", color: "var(--color-foreground)" }} labelStyle={{ color: "var(--color-muted-foreground)" }} formatter={(value) => [`${value}`, t("wellbeing.steadiness")]} /><Line type="monotone" dataKey="balance" stroke="var(--color-chart-1)" strokeWidth={3} dot={{ r: 4, fill: "var(--color-card)", stroke: "var(--color-chart-1)", strokeWidth: 2 }} activeDot={{ r: 6, fill: "var(--color-chart-1)" }} /></LineChart></ResponsiveContainer></div><p className="mt-4 text-xs leading-relaxed text-muted-foreground">{t("wellbeing.chartNote")}</p></div>;
+}

@@ -1,0 +1,10 @@
+{
+  "name": "SENTINEL Wellbeing Companion",
+  "short_name": "SENTINEL",
+  "description": "A private wellbeing companion for noticing patterns and choosing support.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbfcf8",
+  "theme_color": "#315843",
+  "icons": [{ "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }]
+}
