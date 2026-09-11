@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
@@ -13,15 +14,16 @@ export async function generateMetadata() {
 // The design's welcome screen: "This one is yours."
 //
 // It opens with the promise rather than the form, because the first thing a
-// wary person needs is not a field to fill in. The design's onboarding makes
-// this promise across four screens before any sign-in; here it is condensed
-// into the one screen this build actually has.
+// wary person needs is not a field to fill in. The four onboarding screens make
+// the same promises at length at /welcome, linked below and reachable forever —
+// so this screen carries the shortest version of them, not the only version.
 export default async function LoginPage() {
   // Already signed in: no reason to show a login form.
   const session = await auth();
   if (session?.user) redirect("/home");
 
   const t = await getTranslations("login");
+  const onboarding = await getTranslations("onboarding");
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
@@ -46,6 +48,15 @@ export default async function LoginPage() {
           failed: t("failed"),
         }}
       />
+
+      {/* The design's door out of the form. A person who wants to know what
+          this does before signing into it should not have to sign in first. */}
+      <Link
+        href="/welcome"
+        className="text-ink-2 flex min-h-14 items-center justify-center text-center text-base"
+      >
+        {onboarding("readFirst")}
+      </Link>
 
       {/* Before sign-in, not after: a person who cannot read the form cannot
           reach a settings screen to fix it. */}

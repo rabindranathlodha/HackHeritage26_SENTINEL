@@ -3,6 +3,28 @@
     "name": "Companion",
     "tagline": "Your private wellness companion"
   },
+  "onboarding": {
+    "step": "Step {current} of {total}",
+    "next": "Next",
+    "enter": "Go in",
+    "skip": "Skip",
+    "readFirst": "Read how this works first",
+    "step1Title": "This one is yours.",
+    "step1Body": "Not a report. Not a form for anyone above you. A quiet place to notice how your week actually went.",
+    "step2Title": "What you write stays on your phone.",
+    "step2Mine": "Your words and voice",
+    "step2MineWhere": "This phone",
+    "step2Them": "Your welfare team",
+    "step2ThemWhere": "Never receives them",
+    "step2Body": "Anything you write is read here, on the handset. Only a single number ever leaves it.",
+    "step3Title": "Your commander never sees this.",
+    "step3Body": "If a check-in suggests support might help, a welfare officer can open your record. Every time someone opens it, that is written down — who looked, and when.",
+    "step3Yes": "A welfare officer, with a record of it",
+    "step3No1": "Your company commander",
+    "step3No2": "Your unit record",
+    "step4Title": "No name. No service number.",
+    "step4Body": "You sign in with a handle that is not your name and not your number. Nothing you do here is labelled with who you are."
+  },
   "nav": {
     "label": "Sections",
     "home": "Home",

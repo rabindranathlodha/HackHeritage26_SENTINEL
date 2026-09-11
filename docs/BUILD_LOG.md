@@ -1892,3 +1892,26 @@ queue view writes an entry of its own, so older individual views fall off the
 end while new ones are added. A count was never the right instrument. It now
 asserts the newest few rows contain an individual view for the person just
 opened.
+
+## Onboarding, and one promise the design could not keep
+
+The design's four onboarding screens are now at `/welcome`, public and before
+sign-in: a person deciding whether to trust this should not have to hand over
+credentials first. They are linked from the sign-in screen ("Read how this works
+first") and skippable from the opening screen — making them mandatory would
+prove the reader's point about forms.
+
+No "seen onboarding" flag is stored. A flag keyed to a device hides the promises
+from someone reinstalling on a new handset, which is exactly when they would
+want to read them again.
+
+The design's fourth screen says **"No name. No number. Just start."** — no
+account, no sign-up wall. This build cannot keep the second half: the backend
+requires authentication, because RLS is keyed to `sentinel_current_user_id()`
+and every privacy guarantee in the product hangs off it. Removing sign-in would
+remove the row-level security that makes the rest of the onboarding true.
+
+The first half is kept, because it is true: `PersonnelCredential.loginId` is an
+opaque handle by construction, never a name or a service number. So the screen
+reads "No name. No service number." and explains that the handle is neither —
+which is a smaller claim than the design made, and one the schema enforces.
