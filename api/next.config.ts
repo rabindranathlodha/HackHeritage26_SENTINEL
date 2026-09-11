@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Route handlers only; the dashboard UI is a separate spec.
+  // Route handlers for the Companion, plus the Welfare Console at /welfare.
   reactStrictMode: true,
 };
 

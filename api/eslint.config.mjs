@@ -21,9 +21,26 @@ export default tseslint.config(
     },
   },
   {
-    // An operator CLI: its console output IS the interface, not a stray debug
+    // Operator CLIs: their console output IS the interface, not a stray debug
     // line left in a request path.
-    files: ["prisma/issue-credentials.ts"],
+    files: ["prisma/issue-credentials.ts", "prisma/seed-console.ts"],
+    rules: { "no-console": "off" },
+  },
+  {
+    // Acceptance scripts. They run under plain Node rather than Next's runtime,
+    // so they get the timer and URL globals the request path has no business
+    // using, and they report their results by printing them.
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        URL: "readonly",
+        TextEncoder: "readonly",
+      },
+    },
     rules: { "no-console": "off" },
   },
 );

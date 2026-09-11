@@ -1813,3 +1813,82 @@ checked in earlier the same week it reports a failure, and the failure is
 correct behaviour — the home screen was showing "Thanks for checking in." The
 run against a clean account passes 8/8. Worth fixing by having the test assert
 the state it actually finds, rather than by rotating accounts until it is green.
+
+## The Welfare Console
+
+The `frontend-spec` branch was described as a welfare dashboard. It is not one.
+It is a second, Lovable-built copy of the *personnel* app — check-in, consent,
+privacy, settings — and its `/dashboard` route shows the person a **steadiness
+score out of 100 in 6xl type**, plus a wellbeing trend and a weeks-checked-in
+streak. That is precisely the thing this product exists not to do: principle 5
+is that the person never sees a score, a band or a streak, and `copy.test.ts`
+plus `verify-checkin.mjs` enforce it. Its `/inbox` and `/messages` routes are
+empty shells with no backend behind them.
+
+So nothing was merged. What was taken from it is the read on what a staff-facing
+surface needs to show, and the rest was built against the schema that already
+existed.
+
+**The console is in the `api` tier, not the PWA.** The personnel app must never
+contain code that can render a band. Keeping the two in one Next app would have
+put score-rendering components one import away from the screens whose whole
+claim is that no score exists. The api tier already had Prisma, the role helper
+and the audited accessors, so the console is four pages over machinery that was
+built in step 3.4 and never had a face.
+
+**It is a UI over four database functions, and that is the point.**
+
+| Surface | Accessor | What the database enforces |
+|---|---|---|
+| Queue | `sentinel_officer_alert_queue()` | own caseload only; logs `VIEW_ALERT_QUEUE` |
+| Record | `sentinel_officer_view_scores()` | assigned **and** an alert active; logs the view |
+| Record | `sentinel_officer_view_assessments()` | same; dates and language only |
+| Units | `sentinel_cohort_summary()` | k-anonymity; commander role alone |
+
+`sentinel_welfare_officer` holds no `SELECT` on `Score`, `Assessment` or
+`AuditLog`. An individual welfare row therefore cannot be read without an audit
+row being written in the same transaction — not because a handler remembers to
+call a logger, but because there is no other way in. Deleting `lib/welfare.ts`
+entirely would not weaken it.
+
+One migration was added. The officer role could not read its own audit trail,
+so an officer-facing access log would have rendered empty — a screen saying "you
+have looked at nothing", which is worse than no screen.
+`sentinel_officer_access_log()` is SECURITY DEFINER with the actor filter
+written inside it, takes no actor parameter, and is the only route in.
+
+**Design.** Same house as the Companion — identical neutrals, identical type
+pairing — in a different register: denser, flatter, built for someone triaging
+at a desk rather than someone tired at the end of a shift. Two colour systems
+that never touch: teal means *interactive*, and the green→amber→orange→red ramp
+means *severity*. The Companion's ember is deliberately absent, because there it
+marks the one action per screen and never means alarm; reusing it would make one
+colour mean opposite things in two halves of one product. Every band chip
+carries its word, so severity never depends on hue alone.
+
+**Verification.** `api/scripts/verify-console.mjs` — 18/18. It proves the
+constraints rather than the pixels: a PERSONNEL account cannot sign in, an
+unassigned record is refused, an officer cannot reach the aggregate view, a
+commander cannot reach an individual, withheld cohorts show no bars and no mean,
+and **opening a record writes an audit row the officer can then see**.
+
+### Three bugs worth keeping
+
+`sentinel_officer_access_log(integer)` did not exist as far as Postgres was
+concerned: Prisma binds a JS number as `bigint`, and Postgres will not
+implicitly cast `bigint` to `integer` when resolving a function. The error is
+"function does not exist", which reads like a missing migration. `::int` fixes
+it.
+
+The queue test reported **"no records in the queue"** while the page was
+returning 500. An empty list and a crashed page look identical to a selector
+that counts links, and the reassuring reading won. The test now asserts the page
+rendered before it reads anything out of it.
+
+The audit-trail check counted occurrences of `VIEW INDIVIDUAL SCORE` in the log
+and asserted the count rose. It passed twice and then failed — correctly, and
+not because the write stopped happening: the log is capped at twelve and every
+queue view writes an entry of its own, so older individual views fall off the
+end while new ones are added. A count was never the right instrument. It now
+asserts the newest few rows contain an individual view for the person just
+opened.
