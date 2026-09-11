@@ -60,7 +60,7 @@ export default async function TransparencyPage() {
   const home = await getTranslations("home");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+    <main data-testid="transparency-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <div className="flex flex-col gap-4 px-6 pt-8 pb-10">
         <h1 className="anchor">{t("title")}</h1>
         <p className="text-ink-2 text-[17px] leading-relaxed">{t("intro")}</p>

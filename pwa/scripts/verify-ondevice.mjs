@@ -13,7 +13,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -120,6 +120,7 @@ try {
   // --- Write a journal entry and let the device score it -------------------
   await cdp.send("Page.navigate", { url: `${base}/journal` });
   await waitForHydration(cdp, "#journal");
+  await gate(cdp, record, "journal-root", "the journal rendered");
   await cdp.evaluate(INSTALL_CAPTURE);
 
   await cdp.evaluate(`

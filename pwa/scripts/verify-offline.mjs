@@ -12,7 +12,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -124,6 +124,7 @@ try {
   // --- Submit with the network off -----------------------------------------
   await cdp.send("Page.navigate", { url: `${base}/check-in` });
   await waitForHydration(cdp, "fieldset button");
+  await gate(cdp, record, "check-in-root", "the check-in rendered");
   await setOffline(cdp, true);
 
   const answered = await completeCheckIn(cdp);

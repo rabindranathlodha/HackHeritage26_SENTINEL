@@ -34,7 +34,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+    <main data-testid="settings-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <div className="flex flex-col gap-4.5 px-6 pt-8 pb-10">
         <h1 className="anchor">{t("title")}</h1>
 

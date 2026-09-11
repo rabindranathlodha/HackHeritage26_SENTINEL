@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -96,6 +96,7 @@ try {
 
   // --- English -------------------------------------------------------------
   await cdp.send("Page.navigate", { url: `${base}/transparency` });
+  await gate(cdp, record, "transparency-root", "the transparency screen rendered");
   await waitFor(cdp, `document.querySelector('h2')`, "the transparency screen");
   const english = await readScreen(cdp);
 

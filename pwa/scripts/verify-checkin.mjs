@@ -11,7 +11,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -85,6 +85,7 @@ try {
   `);
   const signedIn = await waitFor(cdp, settled("/home"), "sign-in");
   record("signed in and reached the home screen", signedIn);
+  await gate(cdp, record, "home-root", "the home screen rendered");
 
   const home = await cdp.evaluate(`return { body: document.body.innerText }`);
   // Check for the actual affordance, not merely that text rendered — a React
@@ -101,6 +102,7 @@ try {
   // --- Walk the check-in ---------------------------------------------------
   await cdp.send("Page.navigate", { url: `${base}/check-in` });
   await waitForHydration(cdp, "fieldset button");
+  await gate(cdp, record, "check-in-root", "the check-in rendered");
 
   // Installed AFTER the navigation, not before. Page.navigate is a full
   // document load: it tears down the JS context and takes any patched fetch

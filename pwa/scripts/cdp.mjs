@@ -110,3 +110,62 @@ export function reporter() {
  */
 export const settled = (path) =>
   `location.pathname === '${path}' && !document.querySelector('[aria-busy="true"]')`;
+
+/**
+ * Liveness gate. Nothing may assert the ABSENCE of something until this passes.
+ *
+ * The bug this exists for: a queue test reported "no records in the queue"
+ * while the page was returning 500. To a selector that counts links, an empty
+ * list and a crashed page are the same observation — and between "the feature
+ * is empty" and "the server is broken", the comforting reading won. Every
+ * negative assertion in this suite has that failure mode, because a page that
+ * did not render contains no forbidden string either. A copy guard on a 500 is
+ * a guard that reports PASS for a page nobody can read.
+ *
+ * So it checks two independent things:
+ *   - the document's real HTTP status, via PerformanceNavigationTiming, which
+ *     is the response status of the actual navigation rather than anything the
+ *     page can claim about itself;
+ *   - a root element the page only renders on its success path.
+ *
+ * `responseStatus` is unavailable after a client-side route change, because the
+ * navigation entry still describes the original document. That is reported
+ * honestly rather than treated as a pass: the root element carries the check,
+ * and the detail line says the status could not be read.
+ */
+export async function assertRendered(cdp, testId) {
+  const seen = await cdp.evaluate(`
+    const nav = performance.getEntriesByType('navigation')[0];
+    const status =
+      nav && typeof nav.responseStatus === 'number' && nav.responseStatus > 0
+        ? nav.responseStatus
+        : null;
+    const root = document.querySelector('[data-testid="${testId}"]');
+    return {
+      status,
+      found: Boolean(root),
+      path: location.pathname,
+      heading: (document.querySelector('h1')?.textContent ?? '').trim().slice(0, 48),
+    };
+  `);
+
+  const statusOk = seen.status === null || seen.status === 200;
+  const detail = seen.found
+    ? `${seen.path} ${seen.status ?? "client-nav"}${seen.heading ? ` — "${seen.heading}"` : ""}`
+    : `[data-testid="${testId}"] absent at ${seen.path} (status ${seen.status ?? "unknown"})`;
+
+  return { ok: seen.found && statusOk, detail, ...seen };
+}
+
+/**
+ * Records the liveness gate and returns whether it passed.
+ *
+ * Call this — not assertRendered directly — at the top of any block that goes
+ * on to assert an absence, so a dead page fails loudly on its own line instead
+ * of silently satisfying every "does not contain" check that follows.
+ */
+export async function gate(cdp, record, testId, label) {
+  const shell = await assertRendered(cdp, testId);
+  record(label ?? `${testId} rendered`, shell.ok, shell.detail);
+  return shell.ok;
+}

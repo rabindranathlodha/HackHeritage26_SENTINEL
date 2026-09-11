@@ -1915,3 +1915,73 @@ The first half is kept, because it is true: `PersonnelCredential.loginId` is an
 opaque handle by construction, never a name or a service number. So the screen
 reads "No name. No service number." and explains that the handle is neither —
 which is a smaller claim than the design made, and one the schema enforces.
+
+## Phase 1 — the three bugs, with tests that would have caught them
+
+### Bug 1 — the access log's parameter binding
+
+`sentinel_officer_access_log(integer)` reported "function does not exist" while
+the function was plainly in the database. Prisma binds a JavaScript number as
+`bigint`, and PostgreSQL will not implicitly cast bigint to integer when
+resolving a function overload. The error names the wrong thing, which is what
+cost the time.
+
+**One convention, applied at the call site:** the function keeps its `integer`
+signature and the caller casts (`${limit}::int`). It is the only call in the
+codebase passing a JS number into a SQL function — every other raw query binds
+text or writes to a typed column, where Prisma's inference is enough. The rule
+is written next to the cast so the next function added does not rediscover it.
+
+**The test goes through Prisma, not psql.** `psql` sends an untyped literal that
+Postgres coerces happily, so a psql test passes while the app fails — it is
+testing a different query that happens to share a name. `tests/access-log.test.ts`
+calls the real `myAccessLog()`, and a third case asserts the *failure* still
+happens without the cast, so removing `::int` as decorative fails the suite with
+the reason attached.
+
+### Bug 2 — an empty list and a crashed page are the same observation
+
+The queue check reported "no records in the queue" while the page was returning
+500. Every negative assertion in this suite shares that failure mode: a page
+that did not render contains no forbidden string either, so a copy guard on a
+500 reports PASS for a page nobody can read.
+
+`assertRendered()` and `gate()` now live in `scripts/cdp.mjs` and check two
+independent things — the document's real HTTP status via
+`PerformanceNavigationTiming.responseStatus`, which the page cannot fake about
+itself, and a `data-testid` root the page only renders on its success path.
+
+Applied across the whole suite, not just the queue: 17 gates across 12 scripts,
+each placed before the first assertion of an absence. Sixteen page roots were
+added, including both branches of the individual record, so the refusal state
+and the record state are distinguishable from a page that died. Status is
+reported as `client-nav` where a client-side route change makes it unreadable,
+rather than being quietly treated as 200.
+
+### Bug 3 — a count was never the right instrument
+
+The audit check counted `VIEW INDIVIDUAL SCORE` in the rendered log and asserted
+the count rose. It passed twice, then failed — and not because a write stopped.
+`tests/audit.test.ts` now asserts **identity**: the exact row, by actor, action,
+target and a timestamp after the test began.
+
+**The cap of 12 is a display cap, not a storage cap — verified, not assumed.**
+`myAccessLog(officerId, limit = 12)` bounds the query; `sentinel_officer_access_log`
+clamps to `least(greatest(p_limit, 1), 200)`. Nothing evicts. A test writes 14
+views, asserts the stored count rose by at least 14 while the display still
+returns 12, and a fourth test asserts `DELETE` on `"AuditLog"` is refused for
+every role — there is no DELETE policy, so the trail is append-only by
+construction rather than by convention.
+
+Had it been a storage cap it would have been a compliance defect, not a test
+problem: the transparency screen tells the person "every time someone opens your
+record, that is written down", and that sentence would have been false for
+exactly the officer worth auditing.
+
+### Incidental
+
+`src/lib/welfare.ts` and `src/lib/withRole.ts` moved from the `@/` alias to
+relative `./*.ts` specifiers. Node's type-stripping resolves relative paths with
+explicit extensions but knows nothing of tsconfig `paths`, so the alias made the
+real code unimportable from a test — which is how the binding bug reached a
+browser in the first place. It matches what the PWA's tests already do.

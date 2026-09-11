@@ -28,7 +28,7 @@ export default async function ConsoleLogin({
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-8 px-6 py-16">
+    <main data-testid="console-login-root" className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-8 px-6 py-16">
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2.5">
           <span aria-hidden className="bg-accent size-6 rounded-sm" />

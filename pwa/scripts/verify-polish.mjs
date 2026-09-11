@@ -15,7 +15,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -141,6 +141,16 @@ try {
 
   // --- Tap targets, across every screen ------------------------------------
   const screens = ["/home", "/check-in", "/journal", "/settings", "/transparency"];
+  // Each screen's success-path root. Measuring tap targets or horizontal
+  // overflow on a page that failed to render reports a clean pass over
+  // nothing, so every screen is gated before it is measured.
+  const ROOTS = {
+    "/home": "home-root",
+    "/check-in": "check-in-root",
+    "/journal": "journal-root",
+    "/settings": "settings-root",
+    "/transparency": "transparency-root",
+  };
   const undersized = [];
   const overflowing = [];
 
@@ -148,6 +158,7 @@ try {
     await cdp.send("Page.navigate", { url: `${base}${path}` });
     await waitFor(cdp, `document.querySelector('h1')`, `${path} to render`);
     await new Promise((r) => setTimeout(r, 400));
+    await gate(cdp, record, ROOTS[path], `${path} rendered`);
 
     for (const target of await measureTargets(cdp)) {
       // A checkbox is legitimately small when its label is the tap area.
@@ -192,6 +203,11 @@ try {
   // --- The states the spec asks for ----------------------------------------
   await cdp.send("Page.navigate", { url: `${base}/a-page-that-does-not-exist` });
   await waitFor(cdp, `document.querySelector('h1')`, "the not-found screen");
+  // The not-found screen is a 404 by design, so only its root is checked.
+  const notFoundShell = await cdp.evaluate(
+    `return Boolean(document.querySelector('[data-testid="not-found-root"]'))`,
+  );
+  record("the not-found screen rendered its designed state", notFoundShell);
   const notFound = await cdp.evaluate(`
     return { heading: document.querySelector('h1')?.textContent?.trim() ?? '',
              hasWayBack: Boolean([...document.querySelectorAll('a')].find(a => a.getAttribute('href') === '/home')) };

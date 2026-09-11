@@ -19,7 +19,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: { url: { type: "string", default: "http://localhost:3100" } },
@@ -38,6 +38,9 @@ const MIN_TARGET = 56;
 const PAPER = "rgb(247, 244, 241)";
 const DARK_GROUND = "rgb(25, 23, 21)";
 const EMBER = "rgb(180, 86, 42)";
+
+/** The success-path root each public screen renders. */
+const ROOTS = { "/login": "login-root", "/offline": "offline-root" };
 
 async function waitFor(cdp, expression, what, timeoutMs = 20000) {
   const deadline = Date.now() + timeoutMs;
@@ -77,6 +80,10 @@ try {
   });
   await cdp.send("Page.reload");
   await waitFor(cdp, `document.querySelector('h1')`, "the login screen");
+
+  // Liveness before anything below asserts an absence. A 500 has no
+  // third-party stylesheet and no sideways scroll either.
+  await gate(cdp, record, "login-root", "the sign-in screen rendered");
 
   // --- The type pairing -----------------------------------------------------
   const display = await cdp.evaluate(READ_TYPE("h1"));
@@ -139,6 +146,7 @@ try {
   for (const path of ["/login", "/offline"]) {
     await cdp.send("Page.navigate", { url: `${base}${path}` });
     await waitFor(cdp, `document.querySelector('h1')`, `${path} to render`);
+    await gate(cdp, record, ROOTS[path], `${path} rendered`);
 
     const targets = await cdp.evaluate(`
       return [...document.querySelectorAll('a, button, input, textarea, [role=switch]')]
@@ -245,6 +253,7 @@ try {
   });
   await cdp.send("Page.navigate", { url: `${base}/login` });
   await waitFor(cdp, `document.querySelector('h1')`, "the login screen with reduced motion");
+  await gate(cdp, record, "login-root", "the sign-in screen rendered with reduced motion");
 
   const motion = await cdp.evaluate(`
     const animated = [...document.querySelectorAll('*')].filter(el => {

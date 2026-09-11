@@ -190,7 +190,7 @@ export function CheckInFlow({ questions, labels, locale, resume = false }: Props
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
+    <main data-testid="check-in-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       {/* Progress, a way back, and a count. No app name and no title bar: the
           question is the only thing on this screen that should be read. */}
       <div className="flex items-center gap-3 px-6 pt-4">

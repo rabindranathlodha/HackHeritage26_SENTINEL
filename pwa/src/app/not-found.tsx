@@ -9,7 +9,7 @@ export default async function NotFound() {
   const checkIn = await getTranslations("checkIn");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
+    <main data-testid="not-found-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
       <div className="flex flex-col gap-4">
         <h1 className="anchor">{t("notFoundTitle")}</h1>
         <p className="text-ink-2 text-lg leading-relaxed">{t("notFoundBody")}</p>

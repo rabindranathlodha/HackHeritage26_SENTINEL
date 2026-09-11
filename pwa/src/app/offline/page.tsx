@@ -15,7 +15,7 @@ export const metadata = { title: "Offline" };
 
 export default function Offline() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-6 px-6 pt-24 pb-16">
+    <main data-testid="offline-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-6 px-6 pt-24 pb-16">
       <OfflineNotice
         copy={{
           en: { title: en.offline.title, body: en.offline.body },

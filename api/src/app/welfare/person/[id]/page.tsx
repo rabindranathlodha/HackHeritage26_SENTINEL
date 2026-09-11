@@ -131,7 +131,7 @@ export default async function PersonPage({
     if (!refused) throw error;
 
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 py-10">
+      <main data-testid="person-refused-root" className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 py-10">
         <Eyebrow>Access refused</Eyebrow>
         <h1 className="text-2xl font-bold">
           You cannot open this record.
@@ -178,7 +178,7 @@ export default async function PersonPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-6 py-8">
+    <main data-testid="person-root" className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-6 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <Eyebrow>Individual record</Eyebrow>

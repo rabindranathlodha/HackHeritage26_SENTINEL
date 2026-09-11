@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: { url: { type: "string", default: "http://localhost:3100" } },
@@ -69,6 +69,7 @@ try {
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
   await waitForHydration(cdp, "button[lang='hi']");
+  await gate(cdp, record, "login-root", "the sign-in screen rendered");
 
   // --- English is the default for a phone with no preference stored ---------
   const english = await read(cdp);

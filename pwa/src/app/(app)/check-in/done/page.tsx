@@ -27,7 +27,7 @@ export default async function CheckInDonePage({
   const { queued } = await searchParams;
 
   return (
-    <main className="bg-ember-soft mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
+    <main data-testid="check-in-done-root" className="bg-ember-soft mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
       <div className="flex flex-col gap-6">
         <h1 className="anchor">{t("thanks")}</h1>
 

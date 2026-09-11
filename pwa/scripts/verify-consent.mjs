@@ -14,7 +14,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -79,6 +79,7 @@ try {
   // --- Default state --------------------------------------------------------
   await cdp.send("Page.navigate", { url: `${base}/settings` });
   await waitForHydration(cdp, '[data-testid="consent-toggle"]');
+  await gate(cdp, record, "settings-root", "the settings screen rendered");
 
   // Remember what this account started with, so the run leaves no trace.
   // Without this the test mutates shared fixture data: it left a synthetic

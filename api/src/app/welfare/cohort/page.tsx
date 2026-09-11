@@ -31,7 +31,7 @@ export default async function CohortPage() {
   const suppressed = rows.filter((row) => row.refused);
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
+    <main data-testid="cohort-root" className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
       <div className="flex flex-col gap-2">
         <Eyebrow>Aggregate view</Eyebrow>
         <h1 className="text-3xl font-bold">Units</h1>

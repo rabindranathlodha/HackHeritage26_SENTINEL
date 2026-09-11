@@ -1,5 +1,5 @@
-import { withRole } from "@/lib/withRole";
-import type { ConsoleRole } from "@/lib/session";
+import { withRole } from "./withRole.ts";
+import type { ConsoleRole } from "./session.ts";
 
 // Data access for the Welfare Console.
 //

@@ -26,7 +26,7 @@ export default async function LoginPage() {
   const onboarding = await getTranslations("onboarding");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
+    <main data-testid="login-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
       <div className="flex flex-col gap-6">
         {/* The mark, as a plain ember tile. No wordmark: someone glancing at
             this person's phone should not see a monitoring product named. */}

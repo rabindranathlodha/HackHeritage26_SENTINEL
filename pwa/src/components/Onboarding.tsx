@@ -40,7 +40,7 @@ export function Onboarding() {
   const isLast = step === TOTAL - 1;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-8 pb-9">
+    <main data-testid="welcome-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-6 pt-8 pb-9">
       <div className="flex items-center justify-between">
         <span aria-hidden className="bg-ember size-[34px] rounded-lg" />
         {!isLast && (

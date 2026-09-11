@@ -15,6 +15,7 @@ export default async function Loading() {
 
   return (
     <main
+      data-testid="loading-root"
       className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-8 px-6 pt-10 pb-16"
       aria-busy="true"
       aria-live="polite"

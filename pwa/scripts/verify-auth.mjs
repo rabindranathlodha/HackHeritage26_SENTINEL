@@ -13,7 +13,7 @@
 
 import { parseArgs } from "node:util";
 
-import { CDP, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
+import { CDP, gate, killChrome, launchChrome, reporter, settled } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -125,6 +125,7 @@ try {
     return true;
   `);
   await waitFor(cdp, settled("/home"), "the redirect to /home");
+  await gate(cdp, record, "home-root", "the home screen rendered before copy is inspected");
 
   const afterLogin = await cdp.evaluate(`
     return { path: location.pathname,

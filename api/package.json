@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
+    "test": "node --test \"tests/*.test.ts\"",
     "verify:console": "node scripts/verify-console.mjs",
     "seed:console": "node prisma/seed-console.ts"
   },

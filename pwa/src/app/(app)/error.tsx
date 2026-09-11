@@ -28,7 +28,7 @@ export default function AppError({
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
+    <main data-testid="error-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-end gap-8 px-6 pt-24 pb-9">
       <div className="bg-sunk flex flex-col gap-3 rounded-2xl p-[22px]">
         <h1 className="text-2xl leading-tight font-semibold">{t("errorTitle")}</h1>
         <p className="text-ink-2 text-base leading-relaxed">{t("errorBody")}</p>

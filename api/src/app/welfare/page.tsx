@@ -35,7 +35,7 @@ export default async function QueuePage() {
   const pending = sorted.filter((alert) => alert.status === "PENDING_REVIEW");
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
+    <main data-testid="queue-root" className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
       <div className="flex flex-col gap-2">
         <Eyebrow>Assigned to you</Eyebrow>
         <h1 className="text-3xl font-bold">Review queue</h1>

@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-import { prisma } from "./prisma";
+import { prisma } from "./prisma.ts";
 
 // Allowlist, not a hint: the role name is interpolated into SET LOCAL ROLE,
 // which cannot take a bind parameter.

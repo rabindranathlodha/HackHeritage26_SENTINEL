@@ -69,7 +69,7 @@ export default async function HomePage() {
   );
 
   return (
-    <main className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col">
+    <main data-testid="home-root" className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col">
       {/* Clipped to the top of the screen so the glow bleeds off the corner
           rather than being a circle sitting on the page. */}
       <div

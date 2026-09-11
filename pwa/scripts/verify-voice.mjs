@@ -20,7 +20,7 @@ import { parseArgs } from "node:util";
 
 import { launch } from "chrome-launcher";
 
-import { CDP, killChrome, reporter, settled } from "./cdp.mjs";
+import { CDP, killChrome, reporter, settled, gate } from "./cdp.mjs";
 
 const { values } = parseArgs({
   options: {
@@ -161,6 +161,7 @@ try {
   });
   await cdp.send("Page.navigate", { url: `${base}/journal` });
   await waitForHydration(cdp, "#journal");
+  await gate(cdp, record, "journal-root", "the journal rendered");
 
   const support = await cdp.evaluate(`
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;

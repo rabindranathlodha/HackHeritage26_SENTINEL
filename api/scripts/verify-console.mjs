@@ -25,6 +25,7 @@ import { parseArgs } from "node:util";
 
 import {
   CDP,
+  gate,
   killChrome,
   launchChrome,
   reporter,
@@ -129,16 +130,12 @@ try {
   const officerLanding = await signIn(cdp, values.officer, values.password);
   record("the officer signs in", officerLanding === "/welfare", officerLanding);
 
+  // The shared liveness gate, not a bespoke check. Without it a 500 renders as
+  // a page with no links, and every later assertion reports "the queue is
+  // empty" — a different and much more comforting claim than "the queue did
+  // not load".
+  await gate(cdp, record, "queue-root", "the queue page rendered");
   const queue = await text(cdp);
-  // Checked before anything is read out of the page. Without it, a 500 renders
-  // as a page with no links and every later assertion reports "the queue is
-  // empty" — which is a different and much more comforting claim than "the
-  // queue did not load".
-  record(
-    "the queue page actually rendered",
-    /Review queue/.test(queue),
-    queue.split("\n").slice(0, 2).join(" / ") || "(empty page)",
-  );
 
   const targetId = await cdp.evaluate(`
     const link = [...document.querySelectorAll('a')].find(a => a.getAttribute('href')?.startsWith('/welfare/person/'));
@@ -166,6 +163,7 @@ try {
     url: `${base}/welfare/person/${encodeURIComponent(targetId)}`,
   });
   await waitFor(cdp, `document.querySelector('h1')`, "the individual record");
+  await gate(cdp, record, "person-root", "the individual record rendered");
   const recordPage = await text(cdp);
 
   record(
@@ -232,6 +230,7 @@ try {
     url: `${base}/welfare/person/syn-000999`,
   });
   await waitFor(cdp, `document.querySelector('h1')`, "the refusal");
+  await gate(cdp, record, "person-refused-root", "the refusal screen rendered");
   const refused = await text(cdp);
   record(
     "a person outside the caseload is refused, not shown an empty record",
@@ -258,6 +257,7 @@ try {
     commanderLanding,
   );
 
+  await gate(cdp, record, "cohort-root", "the aggregate view rendered");
   const cohort = await text(cdp);
   record(
     "the aggregate view withholds cohorts below the threshold",
