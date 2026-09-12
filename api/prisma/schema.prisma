@@ -36,9 +36,27 @@ model User {
   hrSignals        HrSignal[]
   assessments      Assessment[]
   biometricConsent Boolean      @default(false) // consent-gate for Model C
+
+  // Whether a welfare officer may proactively CONTACT this person. It is not a
+  // detection setting and must never be described as one: alerts are still
+  // raised, and a PRIORITY_REVIEW alert is still shown. What it governs is
+  // whether an officer reaches out uninvited. Off until the person says yes.
+  allowWelfareOutreach Boolean   @default(false)
+
+  // Weekly check-in reminder. Off until asked for; a person who never enables
+  // it must never receive one. The schedule is stored in the person's own
+  // local terms (day, hour, IANA zone) rather than as a UTC instant, so it
+  // stays correct across a transfer or a DST change.
+  weeklyReminderEnabled Boolean  @default(false)
+  weeklyReminderDow     Int? // 0 = Sunday .. 6 = Saturday
+  weeklyReminderHour    Int? // 0-23, the person's local hour
+  weeklyReminderTz      String? // IANA zone, e.g. "Asia/Kolkata"
+  lastReminderSentAt    DateTime?
+
   alerts           Alert[]
   scores           Score[]
   credential       PersonnelCredential?
+  pushSubscriptions PushSubscription[]
 
   @@index([unitId])
   @@index([welfareOfficerId])
@@ -151,4 +169,36 @@ model PersonnelCredential {
   passwordHash String // scrypt$N$r$p$salt$hash — never plaintext, never reversible
   createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
+}
+
+// A Web Push endpoint for one device.
+//
+// Held server-side because that is the only place a push can be sent from, and
+// deliberately in its own table rather than as columns on User: the role that
+// sends reminders can then be granted this table and nothing else. It carries
+// no welfare content and never will — the notification body is a fixed generic
+// string, so a leak of this table reveals which devices exist, not anything
+// about the people holding them.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // The push service URL. Unique because re-subscribing on the same device
+  // returns the same endpoint, and a duplicate would send the same reminder
+  // twice.
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  // Carried on the subscription rather than on User: the reminder role must
+  // know which language to send in, and this keeps that knowledge inside the
+  // one table it is already allowed to read. A device is also the right scope
+  // — the same person may read Hindi on their own phone and English on a
+  // shared one.
+  locale    String   @default("en")
+  createdAt DateTime @default(now())
+  // Set when the push service rejects the endpoint (410 Gone). Kept rather
+  // than deleted so a retry loop cannot resurrect a dead device forever.
+  failedAt  DateTime?
+
+  @@index([userId])
 }

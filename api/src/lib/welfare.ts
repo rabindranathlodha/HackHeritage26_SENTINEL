@@ -26,6 +26,14 @@ export type AlertRow = {
   band: RiskBand;
   status: string;
   reviewedBy: string | null;
+  /**
+   * Whether this person has agreed to be contacted first.
+   *
+   * Carried on the alert because an officer needs it at the moment they are
+   * deciding what to do, not one screen later. It never affects WHETHER the
+   * alert appears — see outreachGuidance().
+   */
+  allowWelfareOutreach: boolean;
 };
 
 export type ScoreRow = {
@@ -72,8 +80,68 @@ export type AuditRow = {
 /** The officer's own queue: assigned people with an alert that is not ACTIONED. */
 export async function alertQueue(officerId: string): Promise<AlertRow[]> {
   return withRole("sentinel_welfare_officer", officerId, async (tx) => {
-    return tx.$queryRaw<AlertRow[]>`SELECT * FROM sentinel_officer_alert_queue()`;
+    // Two statements rather than one, because the queue comes from the audited
+    // accessor and that function returns SETOF "Alert". Widening its signature
+    // to carry a preference column would mean changing the one function whose
+    // shape the audit guarantee is written against, to add something that has
+    // no bearing on access control.
+    const alerts = await tx.$queryRaw<Omit<AlertRow, "allowWelfareOutreach">[]>`
+      SELECT * FROM sentinel_officer_alert_queue()
+    `;
+    if (alerts.length === 0) return [];
+
+    const preferences = await tx.$queryRaw<
+      { id: string; allowWelfareOutreach: boolean }[]
+    >`
+      SELECT id, "allowWelfareOutreach" FROM "User"
+      WHERE id = ANY(${alerts.map((a) => a.userId)}::text[])
+    `;
+    const allows = new Map(preferences.map((row) => [row.id, row.allowWelfareOutreach]));
+
+    return alerts.map((alert) => ({
+      ...alert,
+      // Default false: if the preference could not be read, the officer is
+      // told to hold off rather than told to go ahead.
+      allowWelfareOutreach: allows.get(alert.userId) ?? false,
+    }));
   });
+}
+
+export type OutreachGuidance = {
+  /** May the officer contact this person on their own initiative? */
+  mayContact: boolean;
+  /** Shown when severity overrides the preference for visibility. */
+  overridden: boolean;
+  tone: "clear" | "hold" | "judgement";
+};
+
+/**
+ * What an officer is told to do about contact, given a band and a preference.
+ *
+ * The rule this encodes, written once so no screen can quietly differ:
+ *
+ *   - The preference NEVER suppresses an alert. Nothing here returns "hide".
+ *   - Below PRIORITY_REVIEW with the preference off, the officer is told to
+ *     hold off. The person can still come to them.
+ *   - At PRIORITY_REVIEW the alert is shown and the decision is the officer's.
+ *     Suppressing the highest-severity welfare signal on a preference toggle
+ *     could cost a life, and a person who set that toggle was answering a
+ *     question about ordinary contact, not waiving a serious one.
+ *
+ * The override is surfaced, not silent: the officer is told the person did not
+ * agree to be approached, so the judgement they make is an informed one.
+ */
+export function outreachGuidance(
+  band: RiskBand,
+  allowWelfareOutreach: boolean,
+): OutreachGuidance {
+  if (allowWelfareOutreach) {
+    return { mayContact: true, overridden: false, tone: "clear" };
+  }
+  if (band === "PRIORITY_REVIEW") {
+    return { mayContact: true, overridden: true, tone: "judgement" };
+  }
+  return { mayContact: false, overridden: false, tone: "hold" };
 }
 
 /**

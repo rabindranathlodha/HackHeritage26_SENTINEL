@@ -5,7 +5,10 @@ import { BottomNav } from "@/components/BottomNav";
 import { ClearLocalData } from "@/components/ClearLocalData";
 import { ConsentToggle } from "@/components/ConsentToggle";
 import { LanguageToggle } from "@/components/LanguageToggle";
-import { getConsent } from "@/lib/api";
+import { OutreachToggle } from "@/components/OutreachToggle";
+import { ReminderSettings } from "@/components/ReminderSettings";
+import { getConsent, getPreferences } from "@/lib/api";
+import type { Preferences } from "@/lib/schemas";
 
 export async function generateMetadata() {
   const t = await getTranslations("settings");
@@ -33,6 +36,21 @@ export default async function SettingsPage() {
     consent = false;
   }
 
+  // Same rule for both of these. Outreach shown as OFF cannot claim somebody
+  // agreed to be approached when the record could not be read, and a reminder
+  // shown as OFF is a missing nudge rather than a promise of one that will
+  // never arrive.
+  let preferences: Preferences = {
+    allowWelfareOutreach: false,
+    reminder: { enabled: false, dow: null, hour: null, tz: null },
+    devices: 0,
+  };
+  try {
+    if (session?.user?.id) preferences = await getPreferences(session.user.id);
+  } catch {
+    // Defaults above.
+  }
+
   return (
     <main data-testid="settings-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <div className="flex flex-col gap-4.5 px-6 pt-8 pb-10">
@@ -40,6 +58,13 @@ export default async function SettingsPage() {
 
         <div className="flex flex-col gap-2.5">
           <ConsentToggle initial={consent} />
+
+          <OutreachToggle initial={preferences.allowWelfareOutreach} />
+
+          <ReminderSettings
+            initial={preferences.reminder}
+            devices={preferences.devices}
+          />
 
           <section className="border-line bg-surface flex flex-col gap-2.5 rounded-xl border px-[17px] py-4">
             <h2 className="text-base font-semibold">{t("language")}</h2>

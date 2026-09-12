@@ -1985,3 +1985,94 @@ relative `./*.ts` specifiers. Node's type-stripping resolves relative paths with
 explicit extensions but knows nothing of tsconfig `paths`, so the alias made the
 real code unimportable from a test — which is how the binding bug reached a
 browser in the first place. It matches what the PWA's tests already do.
+
+## Phase 2 — outreach preference and the weekly reminder
+
+### The toggle governs contact, never detection
+
+`User.allowWelfareOutreach`, off by default. The distinction it has to hold is
+the whole safety argument, so it is written in four places that cannot drift:
+the column comment, `outreachGuidance()`, the copy above the switch, and the
+tests.
+
+| Band | Preference off | What the officer is told |
+|---|---|---|
+| LOW / MODERATE / ELEVATED | alert still raised | **Do not approach.** They can still come to you. |
+| PRIORITY_REVIEW | alert still raised **and shown** | Not agreed to contact — your judgement, and note that they had asked. |
+
+`outreachGuidance()` has no return value meaning "hide", and a test enumerates
+every band × preference pair to prove the set of outcomes is exactly
+`{clear, hold, judgement}`. Suppressing the highest-severity signal on a
+preference toggle is an easy, kind-looking change for somebody to make later.
+
+The consent copy sits **above** the control, on its own ground, always visible —
+not behind a disclosure. Its first sentence is the one that matters: *"This is
+about being contacted, not about being noticed."* A person who believed
+otherwise would turn it off and assume nothing was being computed, which would
+be a lie this screen told them.
+
+### The reminder
+
+Off by default, with the schedule stored in the person's own terms — day, hour,
+IANA zone — rather than as a UTC instant, so it survives a transfer or a DST
+change without anyone recomputing it. A CHECK constraint refuses `enabled` with
+no schedule: a reminder that is on and unscheduled either never fires or fires
+at a time nobody picked.
+
+Delivery is Web Push over VAPID, with an in-app banner on next open when the
+handset cannot receive one. Every failure mode — old browser, denied permission,
+device policy — is a fallback rather than an error, and the preference is saved
+either way so the banner still works. What must never happen is a toggle reading
+ON while nothing will ever arrive.
+
+**Dispatch is a pull, not a daemon.** `POST /api/internal/reminders/dispatch`
+sends whatever is due; the six-day floor on `lastReminderSentAt` makes it
+idempotent within the hour, so calling it every ten minutes and calling it hourly
+both send exactly one reminder per person per week. A timer inside the web
+process would have looked more finished and been worse: it fires N times with N
+replicas, dies silently on restart, and has nowhere to report failure. **Wiring a
+scheduler is a deployment decision and is not done here.**
+
+### The narrowest role in the system
+
+`sentinel_reminder` holds column-scoped SELECT on six scheduling columns, SELECT
+on push endpoints, and UPDATE on one timestamp. Not `SELECT ON "User"` — that
+would hand the notifier `welfareOfficerId`, `unitId`, `role` and
+`biometricConsent`, none of which it needs.
+
+Stated as a property rather than an intention, and tested as one: the process
+that reaches a person's lock screen cannot read `Score`, `Assessment`, `Alert`,
+`HrSignal` or `AuditLog`. A test asserts each of those five is refused.
+
+`lastReminderSentAt` is deliberately not granted to the person — someone who
+could clear it could make the dispatcher send the same reminder repeatedly.
+
+### Notification copy is a stricter surface than the app
+
+A notification is the one message that arrives whether or not the person is
+holding the phone, and that anyone beside them can read. So its denylist is
+wider than the clinical one: it also bars *welfare*, *officer*, *concern*,
+*urgent* and *sentinel*. Those are fine inside the app, where the person chose
+to be; on a lock screen they are a disclosure.
+
+Three properties, each tested: the title is the app's neutral name and never the
+product's; the body is identical for everyone, so two different notifications on
+two phones cannot be read as a comparison; and the string carries no
+interpolation point, so making it personal would require deliberately editing the
+file the guard watches. The service worker re-checks before display, because a
+service worker shows whatever it is handed and the push service is not a trusted
+author.
+
+### A test that had been rotting
+
+`verify-checkin` demanded the "check-in due" state without arranging for one, so
+it failed against any account that had already checked in — and the remedy each
+time was to rotate to a fresh account, which is how a test stops meaning
+anything. It now asserts the screen is in *exactly one* of its two supported
+states, which is a stronger claim than the original: a home screen that neither
+offers a check-in nor says why is now a failure, and it was not before.
+
+Also fixed: `verify-design` measured type before `document.fonts.ready`, so a
+cold server reported "Times New Roman" — indistinguishable from a genuinely
+broken font stack. A test that cannot tell a slow load from a missing face will
+eventually be believed about the wrong one.

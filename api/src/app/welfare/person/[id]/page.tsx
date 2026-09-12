@@ -5,6 +5,7 @@ import { BandChip, Card, Eyebrow, Stamp } from "@/components/console";
 import { readSession } from "@/lib/session";
 import {
   alertQueue,
+  outreachGuidance,
   personAssessments,
   personScores,
   setAlertStatus,
@@ -339,6 +340,51 @@ export default async function PersonPage({
           <Eyebrow>Your decision</Eyebrow>
           {alert ? (
             <>
+              {/* The contact preference, before the buttons rather than after.
+                  It is the first thing that should shape what the officer does
+                  next, and it changes what "I have made contact" means. */}
+              {(() => {
+                const guidance = outreachGuidance(
+                  alert.band,
+                  alert.allowWelfareOutreach,
+                );
+
+                if (guidance.tone === "hold") {
+                  return (
+                    <p className="bg-band-moderate-soft text-band-moderate rounded-md px-4 py-3 text-sm leading-relaxed">
+                      <strong className="font-semibold">
+                        This person has asked not to be approached.
+                      </strong>{" "}
+                      Do not reach out. They can still come to you, and the
+                      record of this alert stays with you either way. Their
+                      preference is about contact, not about whether anything is
+                      noticed.
+                    </p>
+                  );
+                }
+
+                if (guidance.tone === "judgement") {
+                  return (
+                    <p className="bg-band-priority-soft text-band-priority rounded-md px-4 py-3 text-sm leading-relaxed">
+                      <strong className="font-semibold">
+                        This person has not agreed to be contacted, and this
+                        alert is shown to you anyway.
+                      </strong>{" "}
+                      At this severity the preference does not withhold the
+                      alert, because a setting about ordinary contact is not a
+                      waiver of a serious one. The judgement is yours. Whatever
+                      you decide, note that they had asked not to be approached.
+                    </p>
+                  );
+                }
+
+                return (
+                  <p className="bg-accent-soft text-accent-ink rounded-md px-4 py-3 text-sm leading-relaxed">
+                    This person has said a welfare officer may contact them.
+                  </p>
+                );
+              })()}
+
               <p className="text-ink-2 text-sm leading-relaxed">
                 Nothing has been sent to this person and nothing will be. This
                 console does not message anyone, and it never notifies a

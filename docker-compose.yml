@@ -92,6 +92,12 @@ services:
       # Shared secret for server-to-server calls from the PWA's auth callback.
       # No default: an unset token must not mean "let everyone in".
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:?INTERNAL_API_TOKEN must be set - see .env.example}
+      # Web Push. Defaulted to empty rather than required: a deployment that
+      # does not want reminders should start cleanly, and the dispatch route
+      # returns 503 instead of sending with a half-configured key.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     ports:
       - "3000:3000"
     volumes:

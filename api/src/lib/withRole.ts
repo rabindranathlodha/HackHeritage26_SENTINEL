@@ -13,6 +13,11 @@ export const DB_ROLES = [
   // Verifies a password and nothing else. It can read PersonnelCredential and
   // User; it has no privilege on any welfare table.
   "sentinel_auth",
+  // Sends weekly reminders. The narrowest role in the system: six scheduling
+  // columns on "User", the push endpoints, and one timestamp it may write
+  // back. The process that reaches a person's lock screen cannot read a single
+  // welfare row.
+  "sentinel_reminder",
 ] as const;
 
 export type DbRole = (typeof DB_ROLES)[number];

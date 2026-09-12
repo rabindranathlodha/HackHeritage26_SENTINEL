@@ -49,3 +49,21 @@ export const checkInStatusSchema = z.object({
 });
 
 export type CheckInStatus = z.infer<typeof checkInStatusSchema>;
+
+// The person's own settings, as the app tier reports them back.
+//
+// Parsed rather than trusted, for the same reason every other response here is:
+// the settings screen shows what the database holds, and an unexpected shape
+// should fail loudly rather than render a toggle in a state nobody chose.
+export const preferencesSchema = z.object({
+  allowWelfareOutreach: z.boolean(),
+  reminder: z.object({
+    enabled: z.boolean(),
+    dow: z.number().int().min(0).max(6).nullable(),
+    hour: z.number().int().min(0).max(23).nullable(),
+    tz: z.string().nullable(),
+  }),
+  devices: z.number().int().min(0),
+});
+
+export type Preferences = z.infer<typeof preferencesSchema>;

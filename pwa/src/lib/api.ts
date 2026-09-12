@@ -4,7 +4,9 @@ import {
   assessmentAckSchema,
   checkInStatusSchema,
   consentSchema,
+  preferencesSchema,
   type CheckInStatus,
+  type Preferences,
 } from "@/lib/schemas";
 
 // The only place that talks to the app tier.
@@ -81,4 +83,70 @@ export async function setConsent(userId: string, value: boolean): Promise<boolea
   });
   if (!res.ok) throw new Error(`app tier responded ${res.status}`);
   return consentSchema.parse(await res.json()).biometricConsent;
+}
+
+export async function getPreferences(userId: string): Promise<Preferences> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/preferences?userId=${encodeURIComponent(userId)}`,
+    { headers: internalHeaders(), cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`app tier responded ${res.status}`);
+  return preferencesSchema.parse(await res.json());
+}
+
+export type PreferencePatch = {
+  allowWelfareOutreach?: boolean;
+  reminder?: {
+    enabled: boolean;
+    dow: number | null;
+    hour: number | null;
+    tz: string | null;
+  };
+};
+
+export async function setPreferences(
+  userId: string,
+  patch: PreferencePatch,
+): Promise<Preferences> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/preferences?userId=${encodeURIComponent(userId)}`,
+    {
+      method: "PUT",
+      headers: internalHeaders(),
+      body: JSON.stringify(patch),
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) throw new Error(`app tier responded ${res.status}: ${await res.text()}`);
+  return preferencesSchema.parse(await res.json());
+}
+
+export type PushRegistration = {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  locale: string;
+};
+
+export async function registerPush(
+  userId: string,
+  registration: PushRegistration,
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/push?userId=${encodeURIComponent(userId)}`,
+    {
+      method: "POST",
+      headers: internalHeaders(),
+      body: JSON.stringify(registration),
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) throw new Error(`app tier responded ${res.status}`);
+}
+
+export async function unregisterPush(userId: string, endpoint: string): Promise<void> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/push?userId=${encodeURIComponent(userId)}&endpoint=${encodeURIComponent(endpoint)}`,
+    { method: "DELETE", headers: internalHeaders(), cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`app tier responded ${res.status}`);
 }

@@ -85,6 +85,13 @@ try {
   // third-party stylesheet and no sideways scroll either.
   await gate(cdp, record, "login-root", "the sign-in screen rendered");
 
+  // Type is measured only once the browser has finished loading faces. On a
+  // cold server the first document beats its own font requests, and measuring
+  // in that window reports "Times New Roman" — which is exactly what a real
+  // broken font stack looks like. A test that cannot tell a slow load from a
+  // missing face will eventually be believed about the wrong one.
+  await waitFor(cdp, `document.fonts.ready.then(() => true)`, "web fonts to load");
+
   // --- The type pairing -----------------------------------------------------
   const display = await cdp.evaluate(READ_TYPE("h1"));
   record(

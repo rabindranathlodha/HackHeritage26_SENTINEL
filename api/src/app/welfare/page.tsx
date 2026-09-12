@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { BandChip, Card, Eyebrow, Stamp, hoursSince } from "@/components/console";
 import { readSession } from "@/lib/session";
-import { alertQueue, myAccessLog, type AlertRow } from "@/lib/welfare";
+import { alertQueue, myAccessLog, outreachGuidance, type AlertRow } from "@/lib/welfare";
 
 export const metadata = { title: "Queue" };
 
@@ -64,6 +64,7 @@ export default async function QueuePage() {
                   <th className="meta text-ink-3 px-5 py-3 font-medium">Band</th>
                   <th className="meta text-ink-3 px-5 py-3 font-medium">Raised</th>
                   <th className="meta text-ink-3 px-5 py-3 font-medium">Waiting</th>
+                  <th className="meta text-ink-3 px-5 py-3 font-medium">Contact</th>
                   <th className="meta text-ink-3 px-5 py-3 font-medium">Status</th>
                   <th className="sr-only">Open</th>
                 </tr>
@@ -80,6 +81,32 @@ export default async function QueuePage() {
                     </td>
                     <td className="num px-5 py-4 text-sm">
                       {hoursSince(alert.createdAt)} h
+                    </td>
+                    <td className="px-5 py-4 text-sm">
+                      {/* Visible in the queue, not one screen later: an officer
+                          scanning for who to call needs to know who has asked
+                          not to be called before they pick up the phone. */}
+                      {(() => {
+                        const guidance = outreachGuidance(
+                          alert.band,
+                          alert.allowWelfareOutreach,
+                        );
+                        if (guidance.tone === "clear") {
+                          return <span className="text-ink-3">Agreed</span>;
+                        }
+                        if (guidance.tone === "hold") {
+                          return (
+                            <span className="meta text-band-moderate">
+                              Do not approach
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="meta text-band-priority">
+                            Not agreed · your call
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="text-ink-2 px-5 py-4 text-sm">
                       {alert.status === "PENDING_REVIEW" ? "Pending review" : "Reviewed"}

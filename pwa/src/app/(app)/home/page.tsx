@@ -5,6 +5,7 @@ import { auth, signOut } from "@/auth";
 import { Ambient } from "@/components/Ambient";
 import { BottomNav } from "@/components/BottomNav";
 import { CheckInCard } from "@/components/CheckInCard";
+import { ReminderBanner } from "@/components/ReminderBanner";
 import { SyncStatus } from "@/components/SyncStatus";
 import { ITEMS } from "@/content/questionnaire";
 import { getCheckInStatus } from "@/lib/api";
@@ -86,6 +87,10 @@ export default async function HomePage() {
         </div>
 
         <SyncStatus />
+
+        {/* Only renders when they asked for reminders and this handset cannot
+            receive a push. See ReminderBanner. */}
+        <ReminderBanner due={due} />
 
         {due ? (
           <CheckInCard total={ITEMS.length} />

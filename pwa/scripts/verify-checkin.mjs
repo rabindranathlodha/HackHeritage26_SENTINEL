@@ -87,16 +87,37 @@ try {
   record("signed in and reached the home screen", signedIn);
   await gate(cdp, record, "home-root", "the home screen rendered");
 
-  const home = await cdp.evaluate(`return { body: document.body.innerText }`);
-  // Check for the actual affordance, not merely that text rendered — a React
-  // error boundary renders text too, and "body.length > 0" passed on one.
-  const offersCheckIn = await cdp.evaluate(
-    `return Boolean([...document.querySelectorAll('a')].find(a => a.getAttribute('href') === '/check-in'))`,
-  );
+  // Asserts the state the screen is ACTUALLY in, rather than demanding an
+  // account that has not checked in this week. The old version required the
+  // "due" state without arranging for one, so running it against an account
+  // with a check-in already on file reported a failure for correct behaviour —
+  // and the remedy was to rotate accounts until it went green, which is how a
+  // test stops meaning anything.
+  //
+  // Both states are legitimate. What would be a real fault is NEITHER: a home
+  // screen that offers no check-in and does not say why. That is what this
+  // asserts, and it is a stronger claim than the original made.
+  //
+  // The affordance is checked as a link, not as text — a React error boundary
+  // renders text too, and "body.length > 0" once passed on one.
+  const state = await cdp.evaluate(`
+    const offers = Boolean(
+      [...document.querySelectorAll('a')].find(a => a.getAttribute('href') === '/check-in'),
+    );
+    const shell = document.querySelector('[data-testid="home-root"]')?.innerText ?? '';
+    return {
+      offers,
+      done: /thanks for checking in|इतना ही/i.test(shell),
+    };
+  `);
   record(
-    "the home screen offers the check-in when one is due",
-    offersCheckIn,
-    home.body.split("\n")[0],
+    "the home screen is in exactly one of its two supported states",
+    state.offers !== state.done,
+    state.offers
+      ? "a check-in is due and offered"
+      : state.done
+        ? "already checked in this week, and says so"
+        : "neither offered nor acknowledged — the screen is in no state at all",
   );
 
   // --- Walk the check-in ---------------------------------------------------
