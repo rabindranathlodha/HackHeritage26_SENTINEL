@@ -2076,3 +2076,94 @@ Also fixed: `verify-design` measured type before `document.fonts.ready`, so a
 cold server reported "Times New Roman" — indistinguishable from a genuinely
 broken font stack. A test that cannot tell a slow load from a missing face will
 eventually be believed about the wrong one.
+
+## Phase 3 — the fusion
+
+The `frontend-spec` branch contributed no code. It was a second copy of the
+personnel app whose `/dashboard` showed the person a 0–100 score, its data layer
+was `IS_DEMO_MODE = true` returning hardcoded arrays, and it had no auth, no
+roles and no cohort view. What it contributed was a read on what a staff surface
+needs, and one genuinely good idea its own implementation could not support.
+
+### The idea worth taking
+
+Its `AccessHistoryCard` showed a person who had looked at their record. It was
+three mock rows. We have the real trail.
+
+`sentinel_personal_access_log()` is the mirror of the officer's accessor:
+SECURITY DEFINER, filter written inside, no actor parameter, and no SELECT grant
+on `AuditLog` for the calling role. The transparency screen already promised
+"every time someone opens your record, that is written down: who looked, and
+when" — true, and until now unverifiable by the person it was about, which are
+the two properties a wary constable has least reason to accept on trust.
+
+One trap in rendering it: the action arrives as `VIEW_INDIVIDUAL_SCORE`, and the
+word *score* must never reach the person. Every action is mapped to plain
+language, an unknown action falls back to a neutral sentence rather than leaking
+an enum, and `verify-transparency` asserts no raw action string appears.
+
+An empty list and an unreadable one are held apart. "Nobody has opened your
+record" is a far stronger claim than "we could not check", and this is the one
+screen where saying the stronger thing without grounds costs the product its
+premise.
+
+### RBAC moved into middleware
+
+`api/src/middleware.ts` matches the whole `/welfare` subtree and denies by
+default, so a route added later is protected without anyone remembering. The
+page-level redirects stay as defence in depth, and the database is the third and
+only authoritative layer — a commander reaching an individual URL is refused by
+`sentinel_officer_may_view()` regardless of what the UI does.
+
+Tested by typing the URL rather than following a link, because a page-level
+guard would pass the link case too.
+
+### The console speaks Hindi
+
+Every string moved into `src/content/console.ts` — a typed dictionary rather than
+next-intl, because the console is server-rendered, has one plural and one cookie,
+and a framework here would be a dependency, a config change and a middleware
+interaction to replace twelve lines. The property is what matters and it is
+enforced: `tests/console-copy` fails on a key present in one language only, on a
+Hindi string byte-identical to its English, and on placeholders that differ
+between the two.
+
+The dictionary is deliberately free of Next imports; reading the cookie lives in
+`lib/consoleLocale.ts`. Copy that only a running server can load is copy nothing
+checks.
+
+One deliberate divergence from the Companion's boundary: an officer may see
+"band" and "indicator", because triage is their job. Diagnostic language stays
+forbidden, with the two required disclaimers allowlisted by key — they contain
+"diagnosis" precisely in order to deny one, and "not a diagnosis" is one dropped
+word from "a diagnosis", which is not a distinction to leave to a regex.
+
+### Five test bugs, four of them mine
+
+**A gate that ran before the wait.** I inserted the liveness gate immediately
+after `Page.navigate` in `verify-transparency`, ahead of the wait. It passed in
+Phase 2 and started failing here only because the page gained an API round trip.
+
+**`innerText` reports only laid-out text.** The real find. The transparency page
+had seven headings in the DOM and `document.body.innerText` returned **42
+characters** — and on those 42 characters, "it shows no score, band or clinical
+term" passed. A vacuous pass sitting inside the suite, in the one place the gate
+did not cover, because the gate only asked whether the root existed.
+`assertRendered` now requires a non-zero layout box, which fixes it everywhere
+rather than in the one script that exposed it.
+
+**Two forms on one page.** The console login gained a language toggle above the
+credentials, and `document.querySelector('form')` silently became the wrong
+form. The POST succeeded, nothing redirected, and sixteen checks reported that
+the officer could not sign in.
+
+**A backslash in a template literal, again.** `/fewer than \d+/` inside a
+`cdp.evaluate` template arrives as `/fewer than d+/` and can never match. The
+diagnostic beside it gave it away: the sample text came back with every letter
+"s" stripped out, because `\s` had collapsed the same way. Fixed with
+`String.raw`, the convention this repo already adopted after the `\b` incident.
+
+**A test that did not put the world back.** `reminders.test.ts` sets
+`lastReminderSentAt` deliberately and the person cannot clear it, so the suite
+passed once and then failed for six days — which reads exactly like a regression
+in the due calculation. It now captures and restores the stamp as admin.

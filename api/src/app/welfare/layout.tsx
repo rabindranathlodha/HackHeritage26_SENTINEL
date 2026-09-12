@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ConsoleLanguageToggle } from "@/components/ConsoleLanguageToggle";
+import { translator } from "@/content/console";
+import { consoleLocale } from "@/lib/consoleLocale";
 import { endSession, readSession } from "@/lib/session";
 
 // The console shell.
@@ -14,6 +17,7 @@ export default async function ConsoleLayout({
   children: React.ReactNode;
 }) {
   const session = await readSession();
+  const t = translator(await consoleLocale());
 
   async function signOutAction() {
     "use server";
@@ -30,27 +34,30 @@ export default async function ConsoleLayout({
           <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3">
             <Link href="/welfare" className="flex items-center gap-2.5">
               <span aria-hidden className="bg-accent size-5 rounded-sm" />
-              <span className="meta text-ink-3">SENTINEL Console</span>
+              <span className="meta text-ink-3">{t("appName")}</span>
             </Link>
 
-            <nav className="flex items-center gap-1" aria-label="Sections">
-              <Link
-                href="/welfare"
-                className="hover:bg-sunk rounded-sm px-3 py-2 text-sm font-medium"
-              >
-                Queue
-              </Link>
+            <nav className="flex items-center gap-1" aria-label={t("appName")}>
+              {(session.role === "WELFARE_OFFICER" || session.role === "ADMIN") && (
+                <Link
+                  href="/welfare"
+                  className="hover:bg-sunk rounded-sm px-3 py-2 text-sm font-medium"
+                >
+                  {t("navQueue")}
+                </Link>
+              )}
               {(session.role === "COMMANDER" || session.role === "ADMIN") && (
                 <Link
                   href="/welfare/cohort"
                   className="hover:bg-sunk rounded-sm px-3 py-2 text-sm font-medium"
                 >
-                  Units
+                  {t("navUnits")}
                 </Link>
               )}
             </nav>
 
-            <div className="ml-auto flex items-center gap-4">
+            <div className="ml-auto flex items-center gap-3">
+              <ConsoleLanguageToggle />
               <span className="meta text-ink-3">
                 {session.userId} · {session.role.replace("_", " ")}
               </span>
@@ -59,7 +66,7 @@ export default async function ConsoleLayout({
                   type="submit"
                   className="text-ink-2 hover:bg-sunk rounded-sm px-3 py-2 text-sm"
                 >
-                  Sign out
+                  {t("signOut")}
                 </button>
               </form>
             </div>

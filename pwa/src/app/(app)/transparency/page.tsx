@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
+import { auth } from "@/auth";
+import { AccessHistory } from "@/components/AccessHistory";
 import { BottomNav } from "@/components/BottomNav";
+import { getAccessLog } from "@/lib/api";
+import type { AccessEvent } from "@/lib/schemas";
 
 export async function generateMetadata() {
   const t = await getTranslations("transparency");
@@ -59,6 +63,20 @@ export default async function TransparencyPage() {
   const settings = await getTranslations("settings");
   const home = await getTranslations("home");
 
+  // The evidence for teamAudit, on the same screen as the claim. An empty list
+  // and an unreadable one are held apart on purpose: "nobody has opened your
+  // record" is a much stronger statement than "we could not check", and this
+  // is the one screen where saying the stronger thing without grounds would
+  // cost the product its premise.
+  const session = await auth();
+  let accessEvents: AccessEvent[] = [];
+  let accessUnavailable = false;
+  try {
+    accessEvents = session?.user?.id ? await getAccessLog(session.user.id) : [];
+  } catch {
+    accessUnavailable = true;
+  }
+
   return (
     <main data-testid="transparency-root" className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <div className="flex flex-col gap-4 px-6 pt-8 pb-10">
@@ -82,6 +100,20 @@ export default async function TransparencyPage() {
               ))}
             </section>
           ))}
+
+          {accessUnavailable ? (
+            <section
+              data-testid="access-history"
+              className="border-line bg-surface flex flex-col gap-3 rounded-xl border p-5"
+            >
+              <h2 className="meta text-ink-3">{t("accessHeading")}</h2>
+              <p className="text-ink-2 text-[15px] leading-relaxed">
+                {t("accessUnavailable")}
+              </p>
+            </section>
+          ) : (
+            <AccessHistory events={accessEvents} />
+          )}
 
           {/* The design puts "Your controls" at the end of this screen rather
               than in the navigation: the place that tells you what is shared

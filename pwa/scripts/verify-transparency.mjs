@@ -96,8 +96,20 @@ try {
 
   // --- English -------------------------------------------------------------
   await cdp.send("Page.navigate", { url: `${base}/transparency` });
+  // The LAST element in the flow, not the first heading. This page streams, and
+  // the h2s arrive before the paragraphs beneath them — waiting on an h2 read a
+  // half-rendered document and reported five missing answers for copy that was
+  // on its way. Waiting on the final block means everything above it is there.
+  await waitFor(
+    cdp,
+    `document.querySelector('[data-testid="access-history"]')?.getBoundingClientRect().height > 0`,
+    "the transparency screen to finish rendering",
+  );
+  // AFTER the wait, not before it. A gate that runs while the document is
+  // still arriving reports "did not render" for a page that renders fine one
+  // tick later — and every read below it then works on an empty string, which
+  // is how "it shows no score, band or clinical term" passed on nothing.
   await gate(cdp, record, "transparency-root", "the transparency screen rendered");
-  await waitFor(cdp, `document.querySelector('h2')`, "the transparency screen");
   const english = await readScreen(cdp);
 
   record("the screen is reachable while signed in", english.path === "/transparency",
@@ -117,8 +129,13 @@ try {
   const missing = Object.entries(answers)
     .filter(([, text]) => !english.body.includes(text))
     .map(([question]) => question);
+  // The detail reports what was actually on screen, not just what was absent.
+  // "missing: all five" with no sight of the page is the kind of failure that
+  // sends someone looking at the wrong layer for an hour.
   record("it answers each question the spec names", missing.length === 0,
-         missing.length ? `missing: ${missing.join(", ")}` : "all five answered");
+         missing.length
+           ? `missing: ${missing.join(", ")} (read ${english.body.length} chars)`
+           : "all five answered");
 
   // --- The boundaries this screen must not cross ---------------------------
   const shown = english.body.toLowerCase();
@@ -131,6 +148,31 @@ try {
   // erasure of history, so this screen must not say it does.
   const erasure = ["we delete", "will be deleted", "erased", "wiped"]
     .filter((phrase) => shown.includes(phrase));
+  // --- The audit trail, shown to the person it is about ---------------------
+  //
+  // The claim "every time someone opens your record, that is written down" now
+  // has the trail beside it. The risk this introduces is specific: the audit
+  // action arrives as VIEW_INDIVIDUAL_SCORE, and rendering it raw would put the
+  // word "score" in front of the person on the one screen that promises it
+  // never appears.
+  const history = await cdp.evaluate(`
+    const block = document.querySelector('[data-testid="access-history"]');
+    if (!block) return null;
+    return { text: block.innerText, chars: block.innerText.length };
+  `);
+  record(
+    "the screen shows the person their own access trail",
+    history !== null,
+    history ? `${history.chars} characters` : "no access-history block rendered",
+  );
+  record(
+    "the trail never renders a raw audit action",
+    history !== null && !/VIEW_INDIVIDUAL|_SCORE|score/i.test(history.text),
+    history === null
+      ? "nothing rendered"
+      : (history.text.match(/VIEW_INDIVIDUAL\w*|score/i)?.[0] ?? "plain language only"),
+  );
+
   record("it promises no erasure the system does not perform", erasure.length === 0,
          erasure.length ? erasure.join(", ") : "none");
 
@@ -141,6 +183,11 @@ try {
   await waitFor(cdp, `document.documentElement.lang === 'hi'`, "the switch to Hindi");
 
   await cdp.send("Page.navigate", { url: `${base}/transparency` });
+  await waitFor(
+    cdp,
+    `document.querySelector('[data-testid="access-history"]')?.getBoundingClientRect().height > 0`,
+    "the Hindi transparency screen to finish rendering",
+  );
   await waitFor(cdp, `document.querySelector('h2')`, "the Hindi transparency screen");
   const hindi = await readScreen(cdp);
 

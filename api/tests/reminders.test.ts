@@ -24,6 +24,7 @@ const ENDPOINT = "https://push.example.invalid/sentinel-test-endpoint";
 
 let subject: string;
 let original: ReminderSchedule;
+let originalStamp: Date | null = null;
 
 before(async () => {
   const [row] = await withRole("sentinel_admin", ACTOR, (tx) =>
@@ -33,11 +34,37 @@ before(async () => {
   );
   subject = row.id;
   original = (await getPreferences(subject)).reminder;
+
+  // Clear the delivery system's own stamp before the suite runs.
+  //
+  // "being reminded once stops them being due again" deliberately sets it, and
+  // the person cannot clear it — that grant is withheld on purpose. So without
+  // this the suite passes once and then fails for six days, which looks like a
+  // regression in the due calculation and is actually a test that did not put
+  // the world back. Captured and restored rather than blanked, so a real
+  // deployment's stamp survives a test run.
+  const [stamp] = await withRole("sentinel_admin", ACTOR, (tx) =>
+    tx.$queryRaw<{ lastReminderSentAt: Date | null }[]>`
+      SELECT "lastReminderSentAt" FROM "User" WHERE id = ${subject}
+    `,
+  );
+  originalStamp = stamp.lastReminderSentAt;
+  await setStamp(null);
 });
+
+/** Only sentinel_admin may write this column; the person never can. */
+async function setStamp(value: Date | null) {
+  await withRole("sentinel_admin", ACTOR, (tx) =>
+    tx.$executeRaw`
+      UPDATE "User" SET "lastReminderSentAt" = ${value} WHERE id = ${subject}
+    `,
+  );
+}
 
 after(async () => {
   await removeSubscription(subject, ENDPOINT);
   await setReminder(subject, original);
+  await setStamp(originalStamp);
 });
 
 /** The schedule that makes `subject` due right now, in UTC. */

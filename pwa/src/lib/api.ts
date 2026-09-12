@@ -1,10 +1,12 @@
 import "server-only";
 
 import {
+  accessLogSchema,
   assessmentAckSchema,
   checkInStatusSchema,
   consentSchema,
   preferencesSchema,
+  type AccessEvent,
   type CheckInStatus,
   type Preferences,
 } from "@/lib/schemas";
@@ -149,4 +151,13 @@ export async function unregisterPush(userId: string, endpoint: string): Promise<
     { method: "DELETE", headers: internalHeaders(), cache: "no-store" },
   );
   if (!res.ok) throw new Error(`app tier responded ${res.status}`);
+}
+
+export async function getAccessLog(userId: string): Promise<AccessEvent[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/access-log?userId=${encodeURIComponent(userId)}`,
+    { headers: internalHeaders(), cache: "no-store" },
+  );
+  if (!res.ok) throw new Error(`app tier responded ${res.status}`);
+  return accessLogSchema.parse(await res.json()).events;
 }

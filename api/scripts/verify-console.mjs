@@ -75,11 +75,31 @@ async function signIn(cdp, loginId, password) {
     const id = document.querySelector('#loginId'), pw = document.querySelector('#password');
     set.call(id, ${JSON.stringify(loginId)}); id.dispatchEvent(new Event('input',{bubbles:true}));
     set.call(pw, ${JSON.stringify(password)}); pw.dispatchEvent(new Event('input',{bubbles:true}));
-    document.querySelector('form').requestSubmit();
+    // The form CONTAINING the password field, not the first form on the page.
+    // A language toggle was added above the credentials, and "the first form"
+    // silently became the wrong one — the POST succeeded, nothing redirected,
+    // and every later check reported the officer could not sign in.
+    document.querySelector('#password').closest('form').requestSubmit();
     return true;
   `);
-  await new Promise((r) => setTimeout(r, 2200));
-  return cdp.evaluate(`return location.pathname + location.search`);
+  // Waits for the path to STOP moving, across three consecutive samples rather
+  // than two. Signing in is a chain — the action redirects to /welfare and
+  // middleware forwards a commander on to /welfare/cohort — and the browser
+  // rests on that intermediate URL long enough for two samples to agree on it.
+  // Reporting the hop as the destination is how "a commander lands on units"
+  // failed against a console that was redirecting them correctly.
+  const samples = [];
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 400));
+    samples.push(
+      await cdp.evaluate(`return location.pathname + location.search`),
+    );
+    if (samples.length < 3) continue;
+    const [a, b, c] = samples.slice(-3);
+    if (a === b && b === c && c !== "/welfare/login") return c;
+  }
+  return samples[samples.length - 1] ?? "";
 }
 
 async function signOut(cdp) {
@@ -284,6 +304,78 @@ try {
       ? `${leakage.length} withheld unit(s) leaked a figure: ${leakage[0].text}`
       : "no bars and no mean on any withheld unit",
   );
+  // --- RBAC is enforced before the page, not by the page --------------------
+  //
+  // Typing the URL, not following a link. A page-level redirect would also
+  // produce this result, so the value of the check is that it holds for a route
+  // nobody linked to — which is the case a per-page guard is most likely to
+  // have missed. src/middleware.ts matches the whole /welfare subtree, so a
+  // screen added later is default-denied rather than default-open.
+  await cdp.send("Page.navigate", {
+    url: `${base}/welfare/person/${encodeURIComponent(targetId)}`,
+  });
+  await new Promise((r) => setTimeout(r, 1500));
+  const commanderAtRecord = await cdp.evaluate(`return location.pathname`);
+  record(
+    "a commander typing an individual URL never reaches it",
+    commanderAtRecord === "/welfare/cohort",
+    `landed on ${commanderAtRecord}`,
+  );
+
+  // --- The refusal is a rendered state, not an omission ---------------------
+  await cdp.send("Page.navigate", { url: `${base}/welfare/cohort` });
+  await waitFor(cdp, `document.querySelector('h1')`, "the aggregate view");
+  // String.raw, because this source is handed to the browser verbatim: in a
+  // plain template literal `\d` and `\s` collapse to bare "d" and "s", so the
+  // regex arrives as /fewer than d+/ and can never match, and the sample below
+  // comes back with every "s" stripped out of it. That second symptom is what
+  // gave the first one away — the same trap the signpost guard hit with `\b`.
+  //
+  // textContent rather than innerText: this reads one card, there is no script
+  // inside it, and textContent does not depend on layout having run.
+  const withheld = await cdp.evaluate(String.raw`
+    const cards = [...document.querySelectorAll('[data-testid="cohort-withheld"]')];
+    return {
+      count: cards.length,
+      explains: cards.every((card) => /fewer than \d+/.test(card.textContent ?? "")),
+      sample: (cards[0]?.textContent ?? "(none)").replace(/\s+/g, " ").slice(0, 110),
+    };
+  `);
+  record(
+    "a cohort below the threshold renders an explicit refusal, not an empty row",
+    withheld.count > 0 && withheld.explains,
+    withheld.count === 0
+      ? "no withheld cohort rendered at all — the control is invisible"
+      : withheld.explains
+        ? `${withheld.count} unit(s) refused, each saying why`
+        : `${withheld.count} refused but one does not explain: ${withheld.sample}`,
+  );
+
+  // --- The console is translated, not English-only --------------------------
+  await cdp.evaluate(
+    `document.cookie = 'sentinel-console-locale=hi; path=/; max-age=3600'; return true;`,
+  );
+  await cdp.send("Page.navigate", { url: `${base}/welfare/cohort` });
+  await waitFor(cdp, `document.querySelector('h1')`, "the aggregate view in Hindi");
+  const hindi = await cdp.evaluate(`return document.body.innerText`);
+  record(
+    "the console renders in Hindi",
+    // One clause, not two. The first version had a stray alternative without
+    // the character class, which matches nothing and made the real check
+    // redundant \u2014 a condition that can only be satisfied by its second half is
+    // a condition nobody has read.
+    /[\u0900-\u097F]/.test(hindi),
+    hindi.split("\n").find((line) => /[\u0900-\u097F]/.test(line))?.slice(0, 48) ?? "no Devanagari on the page",
+  );
+  record(
+    "no English heading is left behind for a Hindi reader",
+    !/Aggregate view|Units\b/.test(hindi),
+    "headings translated",
+  );
+  await cdp.evaluate(
+    `document.cookie = 'sentinel-console-locale=en; path=/; max-age=3600'; return true;`,
+  );
+
   record(
     "the aggregate view offers no route to an individual",
     (await cdp.evaluate(

@@ -141,20 +141,32 @@ export async function assertRendered(cdp, testId) {
         ? nav.responseStatus
         : null;
     const root = document.querySelector('[data-testid="${testId}"]');
+    // Existing in the DOM is not the same as being on screen. innerText
+    // reports only LAID-OUT text, so a document that has parsed but not yet
+    // had layout run returns a near-empty string — and every "does not
+    // contain" assertion downstream passes on it. One suite was reading 42
+    // characters of a 1,600-character page and reporting that it contained no
+    // forbidden term, which was true and meaningless.
+    const box = root?.getBoundingClientRect();
     return {
       status,
       found: Boolean(root),
+      height: box ? Math.round(box.height) : 0,
+      textLength: document.body.innerText.length,
       path: location.pathname,
       heading: (document.querySelector('h1')?.textContent ?? '').trim().slice(0, 48),
     };
   `);
 
   const statusOk = seen.status === null || seen.status === 200;
-  const detail = seen.found
-    ? `${seen.path} ${seen.status ?? "client-nav"}${seen.heading ? ` — "${seen.heading}"` : ""}`
-    : `[data-testid="${testId}"] absent at ${seen.path} (status ${seen.status ?? "unknown"})`;
+  const laidOut = seen.height > 0;
+  const detail = !seen.found
+    ? `[data-testid="${testId}"] absent at ${seen.path} (status ${seen.status ?? "unknown"})`
+    : !laidOut
+      ? `[data-testid="${testId}"] present but has no layout box at ${seen.path}`
+      : `${seen.path} ${seen.status ?? "client-nav"} ${seen.textLength}ch${seen.heading ? ` — "${seen.heading}"` : ""}`;
 
-  return { ok: seen.found && statusOk, detail, ...seen };
+  return { ok: seen.found && statusOk && laidOut, detail, ...seen };
 }
 
 /**

@@ -67,3 +67,23 @@ export const preferencesSchema = z.object({
 });
 
 export type Preferences = z.infer<typeof preferencesSchema>;
+
+// The record of who has opened this person's record.
+//
+// `action` arrives as a raw enum value such as VIEW_INDIVIDUAL_SCORE. It is
+// never rendered: the word "score" must not reach the person (PWA spec §0.5,
+// §9), and the UI maps each action to plain language instead. The schema keeps
+// the raw value because the mapping needs it, not because it is displayable.
+export const accessLogSchema = z.object({
+  events: z.array(
+    z.object({
+      id: z.string(),
+      action: z.string(),
+      actorId: z.string(),
+      actorRole: z.string(),
+      at: z.coerce.date(),
+    }),
+  ),
+});
+
+export type AccessEvent = z.infer<typeof accessLogSchema>["events"][number];

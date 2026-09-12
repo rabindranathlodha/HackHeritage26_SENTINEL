@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { BandChip, Card, Eyebrow, Stamp } from "@/components/console";
+import { translator, type Translate } from "@/content/console";
+import { consoleLocale } from "@/lib/consoleLocale";
 import { readSession } from "@/lib/session";
 import {
   alertQueue,
@@ -14,24 +16,25 @@ import {
 
 export const metadata = { title: "Record" };
 
-/** Reads a category name out of the model's vocabulary into an officer's. */
+/**
+ * Reads a category name out of the model's vocabulary into an officer's.
+ *
+ * Not in the message dictionary: these are the SHAP category keys the ML
+ * service emits, so they arrive as data rather than as copy. An unrecognised
+ * key falls through to a de-underscored version of itself rather than a blank.
+ */
 const CATEGORY_LABEL: Record<string, string> = {
-  sleep: "Sleep",
-  workload: "Workload",
-  deployment: "Deployment pattern",
-  leave: "Leave and rest",
-  social: "Contact with home",
-  mood: "Self-reported mood",
-  physiological: "Physiological signal",
-  grievance: "Open grievance",
-  tenure: "Time in service",
-  language: "Written reflection",
+  deployment_load: "Deployment load",
+  leave_pattern: "Leave pattern",
+  duty_irregularity: "Duty irregularity",
+  transfer_frequency: "Transfer frequency",
+  training_load: "Training load",
+  incident_proximity: "Incident proximity",
 };
 
 function label(key: string): string {
   return (
-    CATEGORY_LABEL[key] ??
-    key.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase())
+    CATEGORY_LABEL[key] ?? key.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase())
   );
 }
 
@@ -42,14 +45,10 @@ function label(key: string): string {
  * information an officer needs ("this has been climbing for three weeks"), and
  * a precise gridline invites reading the number as a measurement it is not.
  */
-function Trend({ scores }: { scores: ScoreRow[] }) {
+function Trend({ scores, t }: { scores: ScoreRow[]; t: Translate }) {
   const series = [...scores].reverse();
   if (series.length < 2) {
-    return (
-      <p className="text-ink-3 text-sm">
-        One measurement so far — not enough for a trend.
-      </p>
-    );
+    return <p className="text-ink-3 text-sm">{t("trendTooShort")}</p>;
   }
 
   const width = 520;
@@ -70,7 +69,10 @@ function Trend({ scores }: { scores: ScoreRow[] }) {
         viewBox={`0 0 ${width} ${height}`}
         className="h-24 w-full"
         role="img"
-        aria-label={`Indicator over the last ${series.length} measurements, ending at ${Math.round(last.sentinelScore)} out of 100.`}
+        aria-label={t("trendAlt", {
+          count: series.length,
+          last: Math.round(last.sentinelScore),
+        })}
       >
         <line
           x1={pad}
@@ -95,9 +97,7 @@ function Trend({ scores }: { scores: ScoreRow[] }) {
           fill="var(--accent)"
         />
       </svg>
-      <p className="meta text-ink-3">
-        {series.length} measurements · oldest left
-      </p>
+      <p className="meta text-ink-3">{t("trendCaption", { count: series.length })}</p>
     </div>
   );
 }
@@ -110,6 +110,7 @@ export default async function PersonPage({
   const session = await readSession();
   if (!session) redirect("/welfare/login");
   const { id } = await params;
+  const t = translator(await consoleLocale());
 
   // The database decides whether this is allowed, not this file. If the officer
   // is not assigned to this person, or no alert is active, the accessor raises
@@ -127,28 +128,23 @@ export default async function PersonPage({
     // connection or a missing migration would otherwise be shown to an officer
     // as "you are not allowed to see this", which is a different and much more
     // damaging statement than "something is broken".
-    const refused =
-      error instanceof Error && /access denied/i.test(error.message);
+    const refused = error instanceof Error && /access denied/i.test(error.message);
     if (!refused) throw error;
 
     return (
-      <main data-testid="person-refused-root" className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 py-10">
-        <Eyebrow>Access refused</Eyebrow>
-        <h1 className="text-2xl font-bold">
-          You cannot open this record.
-        </h1>
-        <p className="text-ink-2 leading-relaxed">
-          A welfare officer may open an individual record only where the person
-          is assigned to them and an alert is currently active. That rule is
-          enforced by the database, not by this screen, so it applies to every
-          route into the data.
-        </p>
-        <p className="text-ink-3 text-sm">
-          The attempt itself was not recorded as a view, because no view
-          happened.
-        </p>
-        <Link href="/welfare" className="text-accent-ink font-medium underline-offset-4 hover:underline">
-          Back to the queue
+      <main
+        data-testid="person-refused-root"
+        className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 py-10"
+      >
+        <Eyebrow>{t("refusedEyebrow")}</Eyebrow>
+        <h1 className="text-2xl font-bold">{t("refusedTitle")}</h1>
+        <p className="text-ink-2 leading-relaxed">{t("refusedBody")}</p>
+        <p className="text-ink-3 text-sm">{t("refusedNote")}</p>
+        <Link
+          href="/welfare"
+          className="text-accent-ink font-medium underline-offset-4 hover:underline"
+        >
+          {t("backToQueue")}
         </Link>
       </main>
     );
@@ -157,6 +153,7 @@ export default async function PersonPage({
   const latest = scores[0];
   const alerts = await alertQueue(session.userId);
   const alert = alerts.find((candidate) => candidate.userId === id);
+  const guidance = alert ? outreachGuidance(alert.band, alert.allowWelfareOutreach) : null;
 
   const contributions = latest
     ? Object.entries(latest.shapCategories ?? {})
@@ -179,10 +176,13 @@ export default async function PersonPage({
   }
 
   return (
-    <main data-testid="person-root" className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-6 py-8">
+    <main
+      data-testid="person-root"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-6 py-8"
+    >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <Eyebrow>Individual record</Eyebrow>
+          <Eyebrow>{t("recordEyebrow")}</Eyebrow>
           <h1 className="text-3xl font-bold">{id}</h1>
         </div>
         {latest && <BandChip band={latest.band} />}
@@ -190,21 +190,18 @@ export default async function PersonPage({
 
       {/* Stated once, plainly, at the top. Not a toast that disappears. */}
       <p className="bg-accent-soft text-accent-ink rounded-md px-4 py-3 text-sm">
-        Opening this record has been recorded against your ID, with the time.
-        The person is told that this log exists and what it contains.
+        {t("recordLogged")}
       </p>
 
       {!latest ? (
         <Card>
-          <p className="text-ink-2">
-            No indicator has been computed for this person yet.
-          </p>
+          <p className="text-ink-2">{t("recordNoIndicator")}</p>
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <Card className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
-              <Eyebrow>Indicator</Eyebrow>
+              <Eyebrow>{t("indicatorEyebrow")}</Eyebrow>
               <div className="flex items-baseline gap-2">
                 <span className="num text-5xl font-bold">
                   {Math.round(latest.sentinelScore)}
@@ -212,9 +209,11 @@ export default async function PersonPage({
                 <span className="text-ink-3 text-lg">/ 100</span>
               </div>
               <p className="text-ink-2 num text-sm">
-                Plausible range {Math.round(latest.confidenceLow)}–
-                {Math.round(latest.confidenceHigh)}. Computed{" "}
-                <Stamp at={latest.computedAt} />.
+                {t("indicatorRange", {
+                  low: Math.round(latest.confidenceLow),
+                  high: Math.round(latest.confidenceHigh),
+                  at: `${new Date(latest.computedAt).toISOString().slice(0, 16).replace("T", " ")} UTC`,
+                })}
               </p>
             </div>
 
@@ -232,9 +231,7 @@ export default async function PersonPage({
                 />
                 <div
                   className="bg-accent absolute inset-y-0 w-[3px] rounded-full"
-                  style={{
-                    left: `${Math.max(0, Math.min(99.5, latest.sentinelScore))}%`,
-                  }}
+                  style={{ left: `${Math.max(0, Math.min(99.5, latest.sentinelScore))}%` }}
                 />
               </div>
               <div className="text-ink-3 meta flex justify-between">
@@ -245,28 +242,27 @@ export default async function PersonPage({
 
             {latest.overrideFired && (
               <p className="bg-band-priority-soft text-band-priority rounded-md px-4 py-3 text-sm">
-                This band was raised by what the person said about themselves,
-                over what the model inferred. Self-report wins here by design.
+                {t("overrideFired")}
               </p>
             )}
 
             <div className="border-line flex flex-col gap-2 border-t pt-4">
-              <Eyebrow>Where the indicator came from</Eyebrow>
+              <Eyebrow>{t("sourcesEyebrow")}</Eyebrow>
               <dl className="num grid grid-cols-3 gap-3 text-sm">
                 <div>
-                  <dt className="text-ink-3">Questionnaire</dt>
+                  <dt className="text-ink-3">{t("sourceQuestionnaire")}</dt>
                   <dd className="font-medium">{latest.scoreA.toFixed(2)}</dd>
                 </div>
                 <div>
-                  <dt className="text-ink-3">Written</dt>
+                  <dt className="text-ink-3">{t("sourceWritten")}</dt>
                   <dd className="font-medium">
                     {latest.scoreB === null ? "—" : latest.scoreB.toFixed(2)}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-ink-3">Physiological</dt>
+                  <dt className="text-ink-3">{t("sourcePhysiological")}</dt>
                   <dd className="font-medium">
-                    {latest.scoreC === null ? "not shared" : latest.scoreC.toFixed(2)}
+                    {latest.scoreC === null ? t("notShared") : latest.scoreC.toFixed(2)}
                   </dd>
                 </div>
               </dl>
@@ -274,9 +270,9 @@ export default async function PersonPage({
           </Card>
 
           <Card className="flex flex-col gap-4">
-            <Eyebrow>What moved it</Eyebrow>
+            <Eyebrow>{t("movedEyebrow")}</Eyebrow>
             {contributions.length === 0 ? (
-              <p className="text-ink-3 text-sm">No breakdown recorded.</p>
+              <p className="text-ink-3 text-sm">{t("movedEmpty")}</p>
             ) : (
               <ul className="flex flex-col gap-3">
                 {contributions.map((entry) => (
@@ -290,7 +286,9 @@ export default async function PersonPage({
                     </div>
                     <div className="bg-sunk h-2 w-full overflow-hidden rounded-full">
                       <div
-                        className={entry.value >= 0 ? "bg-band-elevated h-full" : "bg-band-low h-full"}
+                        className={
+                          entry.value >= 0 ? "bg-band-elevated h-full" : "bg-band-low h-full"
+                        }
                         style={{ width: `${(Math.abs(entry.value) / widest) * 100}%` }}
                       />
                     </div>
@@ -299,24 +297,22 @@ export default async function PersonPage({
               </ul>
             )}
             <p className="text-ink-3 border-line border-t pt-3 text-[13px] leading-relaxed">
-              Categories only — never the words someone wrote. Written
-              reflections are read on the person&apos;s own phone and only a
-              single number ever leaves it.
+              {t("movedNote")}
             </p>
           </Card>
         </div>
       )}
 
       <Card className="flex flex-col gap-3">
-        <Eyebrow>Recent trend</Eyebrow>
-        <Trend scores={scores} />
+        <Eyebrow>{t("trendEyebrow")}</Eyebrow>
+        <Trend scores={scores} t={t} />
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="flex flex-col gap-3">
-          <Eyebrow>Check-ins on file</Eyebrow>
+          <Eyebrow>{t("checkInsEyebrow")}</Eyebrow>
           {assessments.length === 0 ? (
-            <p className="text-ink-3 text-sm">None recorded.</p>
+            <p className="text-ink-3 text-sm">{t("checkInsEmpty")}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {assessments.slice(0, 8).map((entry) => (
@@ -330,67 +326,36 @@ export default async function PersonPage({
               ))}
             </ul>
           )}
-          <p className="text-ink-3 text-[13px] leading-relaxed">
-            Dates and language only. The answers themselves are encrypted at
-            rest and are not readable from this console.
-          </p>
+          <p className="text-ink-3 text-[13px] leading-relaxed">{t("checkInsNote")}</p>
         </Card>
 
         <Card className="flex flex-col gap-3">
-          <Eyebrow>Your decision</Eyebrow>
-          {alert ? (
+          <Eyebrow>{t("decisionEyebrow")}</Eyebrow>
+          {alert && guidance ? (
             <>
               {/* The contact preference, before the buttons rather than after.
                   It is the first thing that should shape what the officer does
                   next, and it changes what "I have made contact" means. */}
-              {(() => {
-                const guidance = outreachGuidance(
-                  alert.band,
-                  alert.allowWelfareOutreach,
-                );
+              {guidance.tone === "hold" && (
+                <p className="bg-band-moderate-soft text-band-moderate rounded-md px-4 py-3 text-sm leading-relaxed">
+                  <strong className="font-semibold">{t("outreachHoldLead")}</strong>{" "}
+                  {t("outreachHoldBody")}
+                </p>
+              )}
+              {guidance.tone === "judgement" && (
+                <p className="bg-band-priority-soft text-band-priority rounded-md px-4 py-3 text-sm leading-relaxed">
+                  <strong className="font-semibold">{t("outreachJudgementLead")}</strong>{" "}
+                  {t("outreachJudgementBody")}
+                </p>
+              )}
+              {guidance.tone === "clear" && (
+                <p className="bg-accent-soft text-accent-ink rounded-md px-4 py-3 text-sm leading-relaxed">
+                  {t("outreachAgreed")}
+                </p>
+              )}
 
-                if (guidance.tone === "hold") {
-                  return (
-                    <p className="bg-band-moderate-soft text-band-moderate rounded-md px-4 py-3 text-sm leading-relaxed">
-                      <strong className="font-semibold">
-                        This person has asked not to be approached.
-                      </strong>{" "}
-                      Do not reach out. They can still come to you, and the
-                      record of this alert stays with you either way. Their
-                      preference is about contact, not about whether anything is
-                      noticed.
-                    </p>
-                  );
-                }
+              <p className="text-ink-2 text-sm leading-relaxed">{t("decisionNothingSent")}</p>
 
-                if (guidance.tone === "judgement") {
-                  return (
-                    <p className="bg-band-priority-soft text-band-priority rounded-md px-4 py-3 text-sm leading-relaxed">
-                      <strong className="font-semibold">
-                        This person has not agreed to be contacted, and this
-                        alert is shown to you anyway.
-                      </strong>{" "}
-                      At this severity the preference does not withhold the
-                      alert, because a setting about ordinary contact is not a
-                      waiver of a serious one. The judgement is yours. Whatever
-                      you decide, note that they had asked not to be approached.
-                    </p>
-                  );
-                }
-
-                return (
-                  <p className="bg-accent-soft text-accent-ink rounded-md px-4 py-3 text-sm leading-relaxed">
-                    This person has said a welfare officer may contact them.
-                  </p>
-                );
-              })()}
-
-              <p className="text-ink-2 text-sm leading-relaxed">
-                Nothing has been sent to this person and nothing will be. This
-                console does not message anyone, and it never notifies a
-                commander. What happens next is a conversation you choose to
-                have.
-              </p>
               <form action={review} className="flex flex-wrap gap-2 pt-1">
                 <input type="hidden" name="alertId" value={alert.id} />
                 <button
@@ -399,7 +364,7 @@ export default async function PersonPage({
                   value="REVIEWED"
                   className="border-line hover:bg-sunk min-h-11 rounded-md border px-4 text-sm font-medium"
                 >
-                  Mark reviewed
+                  {t("markReviewed")}
                 </button>
                 <button
                   type="submit"
@@ -407,24 +372,19 @@ export default async function PersonPage({
                   value="ACTIONED"
                   className="bg-accent text-on-accent min-h-11 rounded-md px-4 text-sm font-semibold"
                 >
-                  I have made contact
+                  {t("markActioned")}
                 </button>
               </form>
-              <p className="text-ink-3 text-[13px] leading-relaxed">
-                Marking it actioned closes the alert and removes your access to
-                this record until a new one is raised.
-              </p>
+              <p className="text-ink-3 text-[13px] leading-relaxed">{t("actionedNote")}</p>
             </>
           ) : (
-            <p className="text-ink-3 text-sm">No open alert for this person.</p>
+            <p className="text-ink-3 text-sm">{t("decisionNoAlert")}</p>
           )}
         </Card>
       </div>
 
       <p className="text-ink-3 max-w-3xl text-[13px] leading-relaxed">
-        This is a screening indicator for human review, not a diagnosis and not
-        a measure of fitness or performance. It does not belong in an appraisal
-        and it is not visible to the chain of command.
+        {t("recordDisclaimer")}
       </p>
     </main>
   );

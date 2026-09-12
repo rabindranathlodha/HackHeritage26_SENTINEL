@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { Card, Eyebrow } from "@/components/console";
+import { translator } from "@/content/console";
+import { consoleLocale } from "@/lib/consoleLocale";
 import { readSession } from "@/lib/session";
 import { cohortSummary } from "@/lib/welfare";
 
@@ -12,60 +14,61 @@ function count(value: bigint | null): number {
 }
 
 const BANDS = [
-  { key: "low_count", label: "Low", bar: "bg-band-low" },
-  { key: "moderate_count", label: "Moderate", bar: "bg-band-moderate" },
-  { key: "elevated_count", label: "Elevated", bar: "bg-band-elevated" },
-  { key: "priority_count", label: "Priority", bar: "bg-band-priority" },
+  { key: "low_count", labelKey: "bandLow", bar: "bg-band-low" },
+  { key: "moderate_count", labelKey: "bandModerate", bar: "bg-band-moderate" },
+  { key: "elevated_count", labelKey: "bandElevated", bar: "bg-band-elevated" },
+  { key: "priority_count", labelKey: "bandPriority", bar: "bg-band-priority" },
 ] as const;
 
 export default async function CohortPage() {
   const session = await readSession();
   if (!session) redirect("/welfare/login");
 
-  // A welfare officer has no business in the aggregate view, and the database
-  // would refuse them anyway — sentinel_cohort_summary is granted to the
-  // commander role alone. Redirecting here turns a 500 into a sentence.
+  // Middleware turned an officer away already; the database would refuse them
+  // too, since sentinel_cohort_summary is granted to the commander role alone.
+  // This is the third of three layers, and the least authoritative.
   if (session.role === "WELFARE_OFFICER") redirect("/welfare");
 
+  const t = translator(await consoleLocale());
   const { rows, threshold } = await cohortSummary(session.userId, session.role);
   const suppressed = rows.filter((row) => row.refused);
 
   return (
-    <main data-testid="cohort-root" className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
+    <main
+      data-testid="cohort-root"
+      className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8"
+    >
       <div className="flex flex-col gap-2">
-        <Eyebrow>Aggregate view</Eyebrow>
-        <h1 className="text-3xl font-bold">Units</h1>
-        <p className="text-ink-2 max-w-2xl leading-relaxed">
-          Group patterns only. No individual is identified here, and there is no
-          control on this page that opens one — a commander cannot reach a
-          person&apos;s record through this console at all.
-        </p>
+        <Eyebrow>{t("cohortEyebrow")}</Eyebrow>
+        <h1 className="text-3xl font-bold">{t("cohortTitle")}</h1>
+        <p className="text-ink-2 max-w-2xl leading-relaxed">{t("cohortIntro")}</p>
       </div>
 
       <p className="bg-accent-soft text-accent-ink rounded-md px-4 py-3 text-sm leading-relaxed">
-        Any unit with fewer than {threshold} people is withheld entirely rather
-        than rounded or blurred. With small numbers, a percentage is a name.
+        {t("cohortThreshold", { k: threshold })}
       </p>
 
       <div className="flex flex-col gap-3">
         {rows.length === 0 && (
           <Card>
-            <p className="text-ink-2">No units have any scored members yet.</p>
+            <p className="text-ink-2">{t("cohortNone")}</p>
           </Card>
         )}
 
         {rows.map((row) => {
           if (row.refused) {
+            // The refusal is a RESULT, rendered as one. Not an empty state, not
+            // a zero, not a row quietly missing from the list — the visible
+            // refusal is the privacy control doing its job where a commander
+            // can see it happen.
             return (
-              <Card key={row.unit_id} className="border-dashed">
+              <Card key={row.unit_id} className="border-dashed" testId="cohort-withheld">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="font-semibold">{row.unit_id}</span>
-                  <span className="meta text-ink-3">Withheld</span>
+                  <span className="meta text-ink-3">{t("cohortWithheld")}</span>
                 </div>
                 <p className="text-ink-2 mt-2 text-sm leading-relaxed">
-                  This unit has fewer than {threshold} scored members, so nothing
-                  about it is shown — not the size, not the spread, not an
-                  average. That the unit exists is all this row reveals.
+                  {t("cohortWithheldBody", { k: threshold })}
                 </p>
               </Card>
             );
@@ -79,8 +82,8 @@ export default async function CohortPage() {
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <span className="font-semibold">{row.unit_id}</span>
                 <span className="text-ink-2 num text-sm">
-                  {n} people
-                  {mean === null ? "" : ` · mean ${mean.toFixed(1)}`}
+                  {t("cohortPeople", { count: n })}
+                  {mean === null ? "" : ` · ${t("cohortMean", { value: mean.toFixed(1) })}`}
                 </span>
               </div>
 
@@ -95,7 +98,7 @@ export default async function CohortPage() {
                       key={band.key}
                       className={band.bar}
                       style={{ width: `${(value / n) * 100}%` }}
-                      title={`${band.label}: ${value}`}
+                      title={`${t(band.labelKey)}: ${value}`}
                     />
                   );
                 })}
@@ -105,7 +108,7 @@ export default async function CohortPage() {
                 {BANDS.map((band) => (
                   <div key={band.key} className="flex items-center gap-2">
                     <span aria-hidden className={`${band.bar} size-2 rounded-full`} />
-                    <dt className="text-ink-3">{band.label}</dt>
+                    <dt className="text-ink-3">{t(band.labelKey)}</dt>
                     <dd className="font-medium">{count(row[band.key])}</dd>
                   </div>
                 ))}
@@ -117,9 +120,11 @@ export default async function CohortPage() {
 
       {suppressed.length > 0 && (
         <p className="text-ink-3 text-[13px] leading-relaxed">
-          {suppressed.length} of {rows.length} units are withheld at the current
-          threshold of {threshold}. Lowering it is a policy decision with a
-          privacy cost, not a display setting.
+          {t("cohortSuppressedNote", {
+            suppressed: suppressed.length,
+            total: rows.length,
+            k: threshold,
+          })}
         </p>
       )}
     </main>

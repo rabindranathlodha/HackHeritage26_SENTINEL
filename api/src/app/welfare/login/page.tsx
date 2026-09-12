@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 
+import { ConsoleLanguageToggle } from "@/components/ConsoleLanguageToggle";
+import { translator } from "@/content/console";
+import { consoleLocale } from "@/lib/consoleLocale";
 import { signIn } from "@/lib/consoleAuth";
 import { readSession, startSession } from "@/lib/session";
 
 export const metadata = { title: "Sign in" };
-
-// One message for every failure, and no hint about which half was wrong.
-const FAILED = "That ID and password did not match.";
 
 export default async function ConsoleLogin({
   searchParams,
@@ -15,6 +15,7 @@ export default async function ConsoleLogin({
 }) {
   if (await readSession()) redirect("/welfare");
   const { error } = await searchParams;
+  const t = translator(await consoleLocale());
 
   async function attempt(formData: FormData) {
     "use server";
@@ -22,29 +23,35 @@ export default async function ConsoleLogin({
       String(formData.get("loginId") ?? ""),
       String(formData.get("password") ?? ""),
     );
+    // One message for every failure, and no hint about which half was wrong.
     if (!session) redirect("/welfare/login?error=1");
     await startSession(session);
     redirect("/welfare");
   }
 
   return (
-    <main data-testid="console-login-root" className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-8 px-6 py-16">
+    <main
+      data-testid="console-login-root"
+      className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-8 px-6 py-16"
+    >
       <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-2.5">
-          <span aria-hidden className="bg-accent size-6 rounded-sm" />
-          <span className="meta text-ink-3">SENTINEL</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span aria-hidden className="bg-accent size-6 rounded-sm" />
+            <span className="meta text-ink-3">SENTINEL</span>
+          </div>
+          {/* Offered before sign-in: an officer who cannot read the form
+              cannot reach a setting inside the console to fix it. */}
+          <ConsoleLanguageToggle />
         </div>
-        <h1 className="text-3xl font-bold">Welfare Console</h1>
-        <p className="text-ink-2 leading-relaxed">
-          For assigned welfare officers. Every individual record you open is
-          recorded, with your name and the time.
-        </p>
+        <h1 className="text-3xl font-bold">{t("loginTitle")}</h1>
+        <p className="text-ink-2 leading-relaxed">{t("loginIntro")}</p>
       </div>
 
       <form action={attempt} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="loginId" className="meta text-ink-3">
-            Officer ID
+            {t("loginId")}
           </label>
           <input
             id="loginId"
@@ -57,7 +64,7 @@ export default async function ConsoleLogin({
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="password" className="meta text-ink-3">
-            Password
+            {t("loginPassword")}
           </label>
           <input
             id="password"
@@ -71,7 +78,7 @@ export default async function ConsoleLogin({
 
         {error && (
           <p role="alert" className="text-band-priority text-sm">
-            {FAILED}
+            {t("loginFailed")}
           </p>
         )}
 
@@ -79,14 +86,11 @@ export default async function ConsoleLogin({
           type="submit"
           className="bg-accent text-on-accent mt-2 min-h-12 rounded-md font-semibold"
         >
-          Sign in
+          {t("loginSubmit")}
         </button>
       </form>
 
-      <p className="text-ink-3 text-[13px] leading-relaxed">
-        This console shows indicators for human review. It is not a clinical
-        assessment and it does not decide anything.
-      </p>
+      <p className="text-ink-3 text-[13px] leading-relaxed">{t("loginDisclaimer")}</p>
     </main>
   );
 }
