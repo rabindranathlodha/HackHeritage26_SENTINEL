@@ -22,7 +22,8 @@ cd pwa && npm run build && npx next start -p 3100
 
 | Who | ID | Password |
 |---|---|---|
-| Constable | `syn-000000` | `demo2026` |
+| Constable — check-in still due | `syn-003000` | `demo2026` |
+| Constable — already checked in | `syn-000000` | `demo2026` |
 | Welfare officer | `off-001` | `console-demo-7k3x` |
 | Commander | `cmd-001` | `console-demo-7k3x` |
 
@@ -38,7 +39,12 @@ Four screens, one promise each. Screen three names what the commander never
 sees. Screen four is honest about what sign-in costs: no name, no service number
 — the login id is an opaque handle by construction.
 
-### 2. A person checks in — sign in as `syn-000000`
+### 2. A person checks in — sign in as `syn-003000`
+
+This account was created for the demo and has **never checked in**: no
+assessments, no scores, no alerts, no HR history. Home greets them with "How are
+you doing this week?" and offers the check-in. Nothing was fabricated for them —
+the only rows that exist are the account and its password hash.
 
 Nine questions, one per screen. Point at two things:
 
